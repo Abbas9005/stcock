@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:my_stock/istakreport.dart';
-import 'package:my_stock/register/register.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
+import 'package:my_stock/pdf/stockpdf.dart';
+
 
 class StockReport extends StatefulWidget {
+  const StockReport({super.key});
+
   @override
   _StockReportState createState() => _StockReportState();
 }
@@ -19,36 +19,14 @@ class _StockReportState extends State<StockReport> {
   int? tappedIndex; // State variable to keep track of the tapped cell index
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
-      int i=0;
-      double totalstock=0.0;
-      double totalquet=0.0;
+    
   @override
   void initState() {
     super.initState();
     stockBox = Hive.box('stock');
   }
  
-     Future<pw.Image> buildImage() async {
-    final image = await flutterImageProvider(
-      AssetImage('assets/apex/apex_logo.jpg'),
-    );
-    return pw.Image(
-      image,
-      width: 60,
-      height: 60,
-    );
-  }
 
-  Future<pw.Image> gmImage() async {
-    final imag = await flutterImageProvider(
-      AssetImage('assets/gm/gmsolar.jpg'),
-    );
-    return pw.Image(
-      imag,
-      width: 60,
-      height: 60,
-    );
-  }
   // Function to handle deletion of a stock item with confirmation
   void _deleteStockItem(int index) {
     showDialog(
@@ -167,7 +145,7 @@ final stocktotal= item['total'];
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.blueAccent, Colors.lightBlue, Colors.purpleAccent],
+                  colors: const [Colors.blueAccent, Colors.lightBlue, Colors.purpleAccent],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -289,192 +267,103 @@ final stocktotal= item['total'];
     }
   }
 
-  Future<void> _generatePdf() async {
-    final pdf = pw.Document();
-     final pwgmimge = await gmImage();
-    final pwImage = await buildImage();
 
-    final stockData = stockBox?.values.toList() ?? [];
 
-    pdf.addPage(
-      pw.Page(
-        build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-               pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
-                pw.Container(
-                  width: 50,
-                  height: 50,
-                  child: pwgmimge,
-                ),
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.center,
-                  children: [
-                    pw.Text('Apex Solar Bannu Branch ',
-                        style: pw.TextStyle(
-                            fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                    pw.Text(
-                        'Back side central jail, Link Road, Bannu Township',
-                        style: pw.TextStyle(fontSize: 10)),
-                    pw.Text("Contact:", style: pw.TextStyle(fontSize: 10)),
-                    pw.Text("(0928)633753", style: pw.TextStyle(fontSize: 10)),
-                  ],
-                ),
-                pw.Container(
-                  width: 50,
-                  height: 50,
-                  child: pwImage,
-                ),
-              ],
-            ),
-                pw.SizedBox(height: 10),
-              pw.Center(child: pw.Text('Stock Summary Report', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold))),
-              pw.SizedBox(height: 20),
-              pw.Table(
-                border: pw.TableBorder.all(),
-                children: [
-                  pw.TableRow(
-                     decoration: pw.BoxDecoration(color: PdfColors.grey200),
-                    children: [
-                       pw.Text('SI no', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                      pw.Text('Item Name', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                      pw.Text('Unit Price', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                      pw.Text('Total', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                      pw.Text('Quantity', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                      pw.Text('Date', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    ],
-                  ),
-                 
-
-                  ...stockData.map((item) {
-             final  total=item['total'];
-            final quantity = item['quantity'];
-                      totalstock=totalstock+total;
-                      totalquet=totalquet+quantity;
-                    i++;
-                    return pw.TableRow(
-                      children: [
-                         pw.Text(' $i'),
-                        pw.Text(item['itemName'] ?? 'Unnamed'),
-                        pw.Text(' ${item['unitPrice']?.toStringAsFixed(2) ?? '0.00'}'),
-                        pw.Text(' ${item['total']?.toString() ?? '0'}'),
-                        pw.Text(' ${item['quantity']?.toString() ?? '0'}'),
-                        pw.Text(' ${item['dateAdded'] ?? 'Unknown Date'}'),
-                      ],
-                    );
-                  }).toList(),
-
-                 pw.TableRow(
-                   decoration: pw.BoxDecoration(color: PdfColors.grey200),
-                    children: [
-                       pw.Text('', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                      pw.Text('Total', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                      pw.Text('', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                      pw.Text('$totalstock', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                      pw.Text('$totalquet', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                      pw.Text('', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    ],
-                  ),
-
-                ],
-              ),
-            ],
-          );
-        },
-      ),
-    );
-
-    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
-    
-  totalquet=0.0;
-  totalquet=0.0;
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.black, // AppBar background color
-        title: Text(
-          'Stock Report',
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-            color: Colors.white, // Title text color
+  automaticallyImplyLeading: false,
+  backgroundColor: Colors.black, // AppBar background color
+  title: Text(
+    'Stock Report',
+    style: TextStyle(
+      fontSize: 26,
+      fontWeight: FontWeight.bold,
+      color: Colors.white, // Title text color
+    ),
+  ),
+  leading: IconButton(
+    icon: Icon(
+      Icons.arrow_back,
+      color: Colors.white, // Back button color
+    ),
+    onPressed: () {
+      // Handle the back button press
+      Navigator.of(context).pop();
+    },
+  ),
+  bottom: PreferredSize(
+    preferredSize: Size.fromHeight(60),
+    child: Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: TextField(
+        controller: searchController,
+        onChanged: (value) {
+          setState(() {
+            searchQuery = value.toLowerCase();
+          });
+        },
+        decoration: InputDecoration(
+          hintText: 'Search by item name...',
+          hintStyle: TextStyle(
+            color: Colors.blueAccent, // Hint text color
+            fontStyle: FontStyle.italic,
           ),
-        ),
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(60),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: searchController,
-              onChanged: (value) {
-                setState(() {
-                  searchQuery = value.toLowerCase();
-                });
-              },
-              decoration: InputDecoration(
-                hintText: 'Search by item name...',
-                hintStyle: TextStyle(
-                  color: Colors.teal.shade200, // Hint text color
-                  fontStyle: FontStyle.italic,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none, // Remove the default border
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: Colors.teal.shade300,
-                    width: 1.5,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: Colors.teal.shade100,
-                    width: 2,
-                  ),
-                ),
-                filled: true,
-                fillColor: Colors.teal.shade50, // TextField background color
-                prefixIcon: Icon(
-                  Icons.search,
-                  color: Colors.teal.shade600, // Prefix icon color
-                ),
-                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-              ),
-              style: TextStyle(
-                color: Colors.white, // Search text color
-                fontSize: 16,
-              ),
-              cursorColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none, // Remove the default border
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: Colors.teal.shade300,
+              width: 1.5,
             ),
           ),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.print,color: Colors.white,),
-            
-            onPressed: _generatePdf,
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: Colors.teal.shade100,
+              width: 2,
+            ),
           ),
-        ],
+          filled: true,
+          fillColor: Colors.teal.shade50, // TextField background color
+          prefixIcon: Icon(
+            Icons.search,
+            color: Colors.teal.shade600, // Prefix icon color
+          ),
+          contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+        ),
+        style: TextStyle(
+          color: Colors.black, // Search text color
+          fontSize: 16,
+        ),
+        cursorColor: Colors.black,
       ),
+    ),
+  ),
+  centerTitle: true,
+  actions: [
+    stockpdf()
+  ],
+),
+
       body: Center(
         child: Container(
           height: double.infinity,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blue, Colors.purple],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+           gradient: LinearGradient(
+  colors: [
+    Color(0xFFB4ECF5), // Light Sky Blue
+    Color(0xFFB6ECF5), // Soft Lavender
+  ],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+),
+
           ),
           child: ValueListenableBuilder(
             valueListenable: Hive.box('stock').listenable(),
@@ -501,7 +390,7 @@ final stocktotal= item['total'];
                       .contains(searchQuery))
                   .toList();
 
-              return  Container(
+              return  SizedBox(
                 height: 700,
                 width: 600,
                 child: Padding(
@@ -509,15 +398,15 @@ final stocktotal= item['total'];
                   child: Stack(
                     children: [ScrollbarTheme(
                        data: ScrollbarThemeData(
-                          thumbColor: MaterialStateProperty.resolveWith<Color>((Set<MaterialState> states) {
-                            if (states.contains(MaterialState.hovered)) {
+                          thumbColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+                            if (states.contains(WidgetState.hovered)) {
                               return Colors.black;
                             }
                             return Colors.grey.shade500;
                           }),
-                          trackColor: MaterialStateProperty.all(Colors.transparent),
-                          trackVisibility: MaterialStateProperty.all(true),
-                          thickness: MaterialStateProperty.all(10.0),
+                          trackColor: WidgetStateProperty.all(Colors.transparent),
+                          trackVisibility: WidgetStateProperty.all(true),
+                          thickness: WidgetStateProperty.all(10.0),
                         ),
                       child: Scrollbar(
                               thumbVisibility: true,
@@ -538,7 +427,7 @@ final stocktotal= item['total'];
                                       'Item Name',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.white,
+                                        color: Colors.black,
                                       ),
                                       textAlign: TextAlign.center,
                                     ),
@@ -548,7 +437,7 @@ final stocktotal= item['total'];
                                       'Unit Price',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.white,
+                                        color: Colors.black,
                                       ),
                                       textAlign: TextAlign.center,
                                     ),
@@ -558,7 +447,7 @@ final stocktotal= item['total'];
                                       'Total',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.white,
+                                        color: Colors.black,
                                       ),
                                       textAlign: TextAlign.center,
                                     ),
@@ -568,7 +457,7 @@ final stocktotal= item['total'];
                                       'Quantity',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.white,
+                                        color: Colors.black,
                                       ),
                                       textAlign: TextAlign.center,
                                     ),
@@ -578,7 +467,7 @@ final stocktotal= item['total'];
                                       'Date',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.white,
+                                        color: Colors.black,
                                       ),
                                       textAlign: TextAlign.center,
                                     ),
@@ -588,7 +477,7 @@ final stocktotal= item['total'];
                                       'Actions',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.white,
+                                        color: Colors.black,
                                       ),
                                       textAlign: TextAlign.center,
                                     ),
@@ -604,8 +493,8 @@ final stocktotal= item['total'];
                                   return MapEntry(
                                     index,
                                     DataRow(
-                                      color: MaterialStateProperty.resolveWith<Color>(
-                                        (Set<MaterialState> states) {
+                                      color: WidgetStateProperty.resolveWith<Color>(
+                                        (Set<WidgetState> states) {
                                           if (tappedIndex == index) {
                                             return Colors.yellow.withOpacity(0.5); // Change background color when tapped
                                           }
@@ -633,7 +522,7 @@ final stocktotal= item['total'];
                                             child: Center(
                                               child: Text(
                                                 itemName,
-                                                style: TextStyle(fontWeight: FontWeight.bold),
+                                                style: TextStyle(fontWeight: FontWeight.bold,    color: Colors.black,),
                                               ),
                                             ),
                                           ),
@@ -641,7 +530,7 @@ final stocktotal= item['total'];
                                         DataCell(
                                           Center(
                                             child: Text(
-                                              '\Rs: ${unitPrice.toStringAsFixed(2)}',
+                                              'Rs: ${unitPrice.toStringAsFixed(2)}',
                                               style: TextStyle(fontWeight: FontWeight.bold),
                                             ),
                                           ),

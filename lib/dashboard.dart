@@ -8,9 +8,12 @@ import 'package:my_stock/stok.dart';
 
 class DashboardScreen extends StatelessWidget {
   @override
-   final int totalStock=0;
+  
   final int pendingPayments=0;
   final int completedPayments=0;
+
+  const DashboardScreen({super.key});
+  @override
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
@@ -60,13 +63,6 @@ class DashboardScreen extends StatelessWidget {
       ),
             
           ),
-          
-        
-        
-        
-          
-        
-      
         body: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -82,7 +78,7 @@ class DashboardScreen extends StatelessWidget {
               children: [
                 SizedBox(height: 5),
                 Center(
-                  child: Container(
+                  child: SizedBox(
                     height: 500,
                     width: 500,
                     child: Padding(

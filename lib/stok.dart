@@ -4,6 +4,8 @@ import 'package:my_stock/databas.dart';
 import 'package:my_stock/stockreport.dart';
 
 class StockManagementScreen extends StatefulWidget {
+  const StockManagementScreen({super.key});
+
   @override
   _StockManagementScreenState createState() => _StockManagementScreenState();
 }
@@ -256,11 +258,11 @@ class _StockManagementScreenState extends State<StockManagementScreen> {
   }
 
   void _resetForm() {
-    _itemNameController.clear();
-    _itemCodeController.clear();
-    _quantityController.clear();
-    _unitPriceController.clear();
-    _dateAddedController.clear();
+    // _itemNameController.clear();
+    // _itemCodeController.clear();
+    // _quantityController.clear();
+    // _unitPriceController.clear();
+    // _dateAddedController.clear();
     setState(() {
       _selectedCategory = null;
     });

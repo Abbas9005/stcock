@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
 import 'package:my_stock/Expances.dart';
+import 'package:my_stock/pdf/pdfroznamcha.dart';
+
 
 class RoznamchaRecordsScreen extends StatefulWidget {
+  const RoznamchaRecordsScreen({super.key});
+
   @override
   _RoznamchaRecordsScreenState createState() => _RoznamchaRecordsScreenState();
 }
@@ -22,6 +26,7 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
   @override
   void initState() {
     super.initState();
+    formattedTotalExpenses='';
     _initializeBox();
   }
 
@@ -143,10 +148,10 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
   }
 
   void _editExpense(Map<dynamic, dynamic> record) async {
-    final TextEditingController _expenseController = TextEditingController();
-    _expenseController.text = record['AmountExpense']?.toString() ?? '';
-    final TextEditingController _expenseForController = TextEditingController();
-    _expenseForController.text = record['Expense_for']?.toString() ?? '';
+    final TextEditingController expenseController = TextEditingController();
+    expenseController.text = record['AmountExpense']?.toString() ?? '';
+    final TextEditingController expenseForController = TextEditingController();
+    expenseForController.text = record['Expense_for']?.toString() ?? '';
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -169,7 +174,7 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: _expenseForController,
+                controller: expenseForController,
                 decoration: InputDecoration(
                   labelText: 'Expense_For',
                   labelStyle: TextStyle(
@@ -193,7 +198,7 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
               ),
               SizedBox(height: 16),
               TextField(
-                controller: _expenseController,
+                controller: expenseController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: 'Expense Amount',
@@ -257,8 +262,8 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
                 );
 
                 if (key != null) {
-                  final newExpense = double.tryParse(_expenseController.text) ?? 0.0;
-                  final newExpenseFor = _expenseForController.text;
+                  final newExpense = double.tryParse(expenseController.text) ?? 0.0;
+                  final newExpenseFor = expenseForController.text;
                   record['AmountExpense'] = newExpense;
                   record['Expense_for'] = newExpenseFor;
                   await _dailyupdataBox.put(key, record);
@@ -348,6 +353,8 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
     }
   }
 
+ 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -361,17 +368,21 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
             fontFamily: 'Roboto',
           ),
         ),
+        centerTitle: true,
+        actions: [
+         pdfroznamcha()
+        ],
       ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.blue, Colors.white],
+            colors: const [Colors.blue, Colors.white],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
         child: Center(
-          child: Container(
+          child: SizedBox(
             height: 600,
             child: Column(
               children: [
@@ -422,7 +433,7 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
                       children: [
                         GestureDetector(
                           onTap: () {
-                            print('$totalByHand');
+                            debugPrint('$totalByHand');
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -456,7 +467,7 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
                               }
                               formattedTotalExpenses = totalExpenses.toStringAsFixed(totalExpenses.truncate() == totalExpenses ? 0 : 2);
                               return Text(
-                                '\$${formattedTotalExpenses}',
+                                '\$$formattedTotalExpenses',
                                 style: TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
@@ -485,12 +496,12 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
                         for (var record in _allRecords) {
                           final date = record['date'] as String;
                           if (_isToday(date)) {
-                            totalSalesToday += record['totalAmount'] ?? 0.0;
+                            totalSalesToday += double.tryParse(record['totalAmount']?.toString() ?? '0.0') ?? 0.0;
                           }
                           if (record['byhandbybank'] == 'byBank') {
-                            totalByBank += record['amountPaid'] ?? 0.0;
+                            totalByBank += double.tryParse(record['amountPaid']?.toString() ?? '0.0') ?? 0.0;
                           } else {
-                            totalByHand += record['amountPaid'] ?? 0.0;
+                            totalByHand += double.tryParse(record['amountPaid']?.toString() ?? '0.0') ?? 0.0;
                           }
                         }
 
@@ -566,15 +577,15 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
                                     )
                                   : ScrollbarTheme(
                                       data: ScrollbarThemeData(
-                                        thumbColor: MaterialStateProperty.resolveWith<Color>((Set<MaterialState> states) {
-                                          if (states.contains(MaterialState.hovered)) {
+                                        thumbColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+                                          if (states.contains(WidgetState.hovered)) {
                                             return Colors.black;
                                           }
                                           return Colors.grey.shade500;
                                         }),
-                                        trackColor: MaterialStateProperty.all(Colors.transparent),
-                                        trackVisibility: MaterialStateProperty.all(true),
-                                        thickness: MaterialStateProperty.all(10.0),
+                                        trackColor: WidgetStateProperty.all(Colors.transparent),
+                                        trackVisibility: WidgetStateProperty.all(true),
+                                        thickness: WidgetStateProperty.all(10.0),
                                       ),
                                       child: Scrollbar(
                                         thumbVisibility: true,
@@ -759,7 +770,7 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
                                                       ),
                                                       DataCell(
                                                         Text(
-                                                          '${_formatDate(record['date'] ?? '')}',
+                                                          _formatDate(record['date'] ?? ''),
                                                           style: TextStyle(
                                                             color: Colors.black,
                                                           ),

@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
 
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 class Expances extends StatefulWidget {
   final String expanc;
    final double totalByHand;
-  Expances({required this.expanc, required this.totalByHand});
+  const Expances({super.key, required this.expanc, required this.totalByHand});
 
   @override
   State<Expances> createState() => _ExpancesState();
@@ -46,6 +49,28 @@ void dispose() {
       _calculateTotalExpenses();
     });
   }
+  Future<pw.Image> buildImage() async {
+    final image = await flutterImageProvider(
+      AssetImage('assets/apex/apex_logo.jpg'),
+    );
+    return pw.Image(
+      image,
+      width: 60,
+      height: 60,
+    );
+  }
+
+  Future<pw.Image> gmImage() async {
+    final imag = await flutterImageProvider(
+      AssetImage('assets/gm/gmsolar.jpg'),
+    );
+    return pw.Image(
+      imag,
+      width: 60,
+      height: 60,
+    );
+  }
+
 
   void _calculateTotalExpenses() {
     double totalExpenses = 0.0;
@@ -54,15 +79,15 @@ void dispose() {
     }
     formattedTotalExpenses = totalExpenses.toStringAsFixed(totalExpenses.truncate() == totalExpenses ? 0 : 2);
     double TotalExpenses = totalExpenses;
-    double exmances = double.tryParse(external?.toString() ?? '0.0') ?? 0.0;
+    double exmances = double.tryParse(external.toString() ?? '0.0') ?? 0.0;
     finalexpance = TotalExpenses + exmances;
     total=totalbyhand-finalexpance;
   }
 
-  void _addExpense() {
-    final TextEditingController _expenseController = TextEditingController();
-    final TextEditingController _expenseForController = TextEditingController();
-    final TextEditingController _dateAddedController = TextEditingController();
+  void addExpense() {
+    final TextEditingController expenseController = TextEditingController();
+    final TextEditingController expenseForController = TextEditingController();
+    final TextEditingController dateAddedController = TextEditingController();
 
     showDialog(
       context: context,
@@ -86,7 +111,7 @@ void dispose() {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: _expenseForController,
+                controller: expenseForController,
                 decoration: InputDecoration(
                   labelText: 'Expense_For',
                   labelStyle: TextStyle(
@@ -110,7 +135,7 @@ void dispose() {
               ),
               SizedBox(height: 16),
               TextField(
-                controller: _expenseController,
+                controller: expenseController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: 'Expense Amount',
@@ -135,7 +160,7 @@ void dispose() {
               ),
               SizedBox(height: 16),
               TextField(
-                controller: _dateAddedController,
+                controller: dateAddedController,
                 decoration: InputDecoration(
                   labelText: 'Date (yyyy-MM-dd)',
                   labelStyle: TextStyle(color: Colors.black),
@@ -167,7 +192,7 @@ void dispose() {
                     lastDate: DateTime(2101),
                   );
                   if (pickedDate != null) {
-                    _dateAddedController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
+                    dateAddedController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
                   }
                 },
               ),
@@ -206,9 +231,9 @@ void dispose() {
               onPressed: () async {
                 Navigator.of(context).pop();
 
-                final newExpense = double.tryParse(_expenseController.text) ?? 0.0;
-                final newExpenseFor = _expenseForController.text;
-                final date = _dateAddedController.text;
+                final newExpense = double.tryParse(expenseController.text) ?? 0.0;
+                final newExpenseFor = expenseForController.text;
+                final date = dateAddedController.text;
                 final newRecord = {
                   'AmountExpense': newExpense,
                   'Expense_for': newExpenseFor,
@@ -282,6 +307,88 @@ void dispose() {
       },
     );
   }
+ Future<void> generatePdf(List<Map<dynamic, dynamic>> records, double finalexpance, double total) async {
+  final pdf = pw.Document();
+  final pwImage = await buildImage();
+  final pwgmimge = await gmImage();
+
+  pdf.addPage(
+    pw.MultiPage(
+      header: (pw.Context context) {
+        return pw.Column(
+          children: [
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Container(
+                  width: 50,
+                  height: 50,
+                  child: pwgmimge,
+                ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    pw.Text(
+                      'Apex Solar Bannu Branch',
+                      style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+                    ),
+                    pw.Text(
+                      'Back side central jail, Link Road, Bannu Township',
+                      style: pw.TextStyle(fontSize: 10),
+                    ),
+                    pw.Text("Contact:", style: pw.TextStyle(fontSize: 10)),
+                    pw.Text("(0928)633753", style: pw.TextStyle(fontSize: 10)),
+                  ],
+                ),
+                pw.Container(
+                  width: 50,
+                  height: 50,
+                  child: pwImage,
+                ),
+              ],
+            ),
+            pw.Divider(),
+          ],
+        );
+      },
+      build: (pw.Context context) {
+        return [
+          pw.Center(child: pw.Text('Expenses Report', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold))),
+          pw.SizedBox(height: 20),
+          pw.Text('Total Expenses: \$$finalexpance', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.red)),
+          pw.SizedBox(height: 10),
+          pw.Text('Total: \$$total', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.black)),
+          pw.SizedBox(height: 20),
+          pw.Table(
+            border: pw.TableBorder.all(),
+            children: [
+              pw.TableRow(
+                children: [
+                  pw.Text(' Amount_Expense', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.Text(' Expense_for', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.Text(' Date', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                ],
+              ),
+              ...records.map((record) {
+                return pw.TableRow(
+                  children: [
+                    pw.Text(record['AmountExpense']?.toString() ?? 'No Data'),
+                    pw.Text(record['Expense_for']?.toString() ?? 'No Data'),
+                    pw.Text(record['date']?.toString() ?? 'No Data'),
+                  ],
+                );
+              }).toList(),
+            ],
+          ),
+        ];
+      },
+    ),
+  );
+
+  await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
+}
+
+
 
   void _editExpense(Map<dynamic, dynamic> record) async {
     final TextEditingController expenseController = TextEditingController();
@@ -469,153 +576,161 @@ void dispose() {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Row(
+ @override
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      title: const Row(
+        children: [
+          Text(
+            'Expenses ',
+            style: TextStyle(
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: Colors.blue,
+      actions: [
+        Row(
           children: [
             Text(
-              'Expenses ',
-              style: TextStyle(
-                color: Colors.white,
-              ),
-            ),
-         
-           
-          ],
-        ),
-        
-        backgroundColor: Colors.blue,
-        actions: [
-          Row(
-            children: [
- Text(
-              'add',
+              'Add The New Expenses ',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 20
               ),
             ),
-              IconButton(
-                icon: Icon(
-                  Icons.add,
-                  color: Colors.white,
-                  size: 30.0,
-                ),
-                onPressed: _addExpense,
-                splashRadius: 24.0,
+            IconButton(
+              icon: Icon(
+                Icons.add,
+                color: Colors.white,
+                size: 30.0,
               ),
-            ],
-          ),
-        ],
-      ),
-      body: Center(
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.9),
-            borderRadius: BorderRadius.circular(10.0),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                spreadRadius: 2,
-                blurRadius: 5,
-                offset: Offset(0, 3),
+              onPressed: addExpense,
+               tooltip: "Add", 
+              splashRadius: 24.0,
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.print,
+                color: Colors.white,
+                size: 30.0,
               ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              children: [
-                SizedBox(height: 8.0),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Total Expenses: \$$finalexpance',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red.shade700,
-                      ),
-                    ),
-                        SizedBox(width: 12),
-                      Text(
-                      'Total : \$$total',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ],
-                ),
-                Text(
-                  'Expenses: \$$formattedTotalExpenses',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red.shade200,
-                  ),
-                ),
-               Expanded(
-  child: ScrollbarTheme(
-      data: ScrollbarThemeData(
-                                        thumbColor: MaterialStateProperty.resolveWith<Color>((Set<MaterialState> states) {
-                                          if (states.contains(MaterialState.hovered)) {
-                                            return Colors.black;
-                                          }
-                                          return Colors.grey.shade500;
-                                        }),
-                                        trackColor: MaterialStateProperty.all(Colors.transparent),
-                                        trackVisibility: MaterialStateProperty.all(true),
-                                        thickness: MaterialStateProperty.all(10.0),
-                                      ),
-    child: Scrollbar(
-      thumbVisibility: true,
-      controller: _horizontalScrollController,
-      child: ListView.builder(
-        controller: _horizontalScrollController, // Attach the controller here
-        itemCount: _filteredRecords.length,
-        itemBuilder: (context, index) {
-          final record = _filteredRecords[index];
-          return Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ListTile(
-              title: Text(
-                record.entries.map((e) => '${e.key}: ${e.value ?? 'No Data'}').join(', '),
-                style: TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
+              onPressed: () => generatePdf(_filteredRecords, finalexpance, total),
+               tooltip: "print Expenses", 
+              splashRadius: 24.0,
+            ),
+          ],
+        ),
+      ],
+    ),
+    body: Center(
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(10.0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              spreadRadius: 2,
+              blurRadius: 5,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            children: [
+              SizedBox(height: 8.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  IconButton(
-                    icon: Icon(Icons.edit, color: Colors.blue),
-                    onPressed: () => _editExpense(record),
+                  Text(
+                    'Total Expenses: \$$finalexpance',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red.shade700,
+                    ),
                   ),
-                  IconButton(
-                    icon: Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _deleteExpense(record),
+                  SizedBox(width: 12),
+                  Text(
+                    'Total : \$$total',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
                   ),
                 ],
               ),
-            ),
-          );
-        },
-      ),
-    ),
-  ),
-),
-
-              ],
-            ),
+              Text(
+                'Expenses: \$$formattedTotalExpenses',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red.shade200,
+                ),
+              ),
+              Expanded(
+                child: ScrollbarTheme(
+                  data: ScrollbarThemeData(
+                    thumbColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+                      if (states.contains(WidgetState.hovered)) {
+                        return Colors.black;
+                      }
+                      return Colors.grey.shade500;
+                    }),
+                    trackColor: WidgetStateProperty.all(Colors.transparent),
+                    trackVisibility: WidgetStateProperty.all(true),
+                    thickness: WidgetStateProperty.all(10.0),
+                  ),
+                  child: Scrollbar(
+                    thumbVisibility: true,
+                    controller: _horizontalScrollController,
+                    child: ListView.builder(
+                      controller: _horizontalScrollController, // Attach the controller here
+                      itemCount: _filteredRecords.length,
+                      itemBuilder: (context, index) {
+                        final record = _filteredRecords[index];
+                        return Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: ListTile(
+                            title: Text(
+                              record.entries.map((e) => '${e.key}: ${e.value ?? 'No Data'}').join(', '),
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: Icon(Icons.edit, color: Colors.blue),
+                                  onPressed: () => _editExpense(record),
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () => _deleteExpense(record),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 }

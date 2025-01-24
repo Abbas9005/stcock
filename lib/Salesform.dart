@@ -5,17 +5,18 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SalesFormScreen extends StatefulWidget {
+  const SalesFormScreen({super.key});
+
   @override
-  _SalesFormScreenState createState() => _SalesFormScreenState();
+  SalesFormScreenState createState() => SalesFormScreenState();
 }
 
-class _SalesFormScreenState extends State<SalesFormScreen> {
-   final TextEditingController _dateAddedController = TextEditingController();
+class SalesFormScreenState extends State<SalesFormScreen> {
+  final TextEditingController dateAddedController = TextEditingController();
   final TextEditingController customername = TextEditingController();
   final TextEditingController bankname = TextEditingController();
   final TextEditingController contect = TextEditingController();
@@ -24,55 +25,60 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
   final TextEditingController squantite = TextEditingController();
   final TextEditingController uniteprice = TextEditingController();
   TextEditingController invoiceNumberController = TextEditingController();
-   TextEditingController kataNumberController = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  TextEditingController kataNumberController = TextEditingController();
+   TextEditingController TotalAmount = TextEditingController();
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final Map<String, int> _itemQuantities = {};
   Map<String, List<Map<String, dynamic>>> _stockData = {};
-  final Map<String, double> _itQuantities = {};
+  final Map<String, double> itQuantities = {};
   List<String> items = [];
   String? selecteitem;
   String? sitem;
-  double _unitPriceAmount = 0.0;
-  double _balanceAmount = 0.0;
-  double Checkqunt = 0.0;
+  double unitPriceAmount = 0.0;
+  double balanceAmount = 0.0;
+  double stockquantity = 0.0;
   double textfiledunitprince = 0.0;
-  double TotalAmount = 0.0;
+
   String countectnumber = '';
-   String name = '';
-  String? _selectedExpense;
+  String name = '';
+  String? selectedExpense;
   bool isHandSelected = false;
-  String _errorMessage = '';
+  String errorMessage = '';
   String errorquentity = '';
   String? iteamname = '';
   String? cname = '';
-  List<String> _expenseItems = ['Rent', 'Food', 'Utilities', 'Other'];
-  TextEditingController _customExpenseController = TextEditingController();
+  final List<String> expenseItems = ['Rent', 'Food', 'Utilities', 'Other'];
+  final TextEditingController customExpenseController =
+      TextEditingController();
   var stockBox = Hive.box('stock');
   String? selectedItem;
-  double qcarintadd = 0.0;
+  double enterquentity = 0.0;
   String? add = '';
   int currentInvoiceNumber = 0;
-  List<Map<String, dynamic>> _itemDetailsList = [];
+  List<Map<String, dynamic>> itemDetailsList = [];
   String totalAmount = '';
-  String dateController='';
-    DateTime date = DateTime.now();
+  String dateController = '';
+  DateTime date = DateTime.now();
+  double showquantity=0.0;
 
- @override
-void initState() {
-  super.initState();
- dateController=DateTime.now().toString();
-  // Initialize SharedPreferences
-  SharedPreferences.getInstance().then((prefs) {
-    currentInvoiceNumber = prefs.getInt('invoiceNumber') ?? 0;
-    _fetchStockData();
-  });
-}
- void _clearItemDetailsList() {
-    setState(() {
-      _itemDetailsList = [];
+  @override
+  void initState() {
+    super.initState();
+    dateController = DateTime.now().toString();
+    // Initialize SharedPreferences
+    SharedPreferences.getInstance().then((prefs) {
+      currentInvoiceNumber = prefs.getInt('invoiceNumber') ?? 0;
+      fetchStockData();
     });
   }
-  void _clearItemDetails() {
+
+  void clearItemDetailsList() {
+    setState(() {
+      itemDetailsList = [];
+    });
+  }
+
+  void clearItemDetails() {
     setState(() {
       selecteitem = null;
       sitem = null;
@@ -82,7 +88,8 @@ void initState() {
       uniteprice.clear();
     });
   }
-  void _clearForm() {
+
+  void clearForm() {
     setState(() {
       customername.clear();
       contect.clear();
@@ -90,99 +97,100 @@ void initState() {
       _itemQuantities.clear();
       selecteitem = null;
       sitem = null;
-      _selectedExpense = null;
-      _unitPriceAmount = 0.0;
-      _balanceAmount = 0.0;
-      TotalAmount = 0.0;
-      _errorMessage = '';
+      selectedExpense = null;
+      unitPriceAmount = 0.0;
+      balanceAmount = 0.0;
+      TotalAmount.clear();
+      errorMessage = '';
       errorquentity = '';
       amountexpanses.clear();
       squantite.clear();
-      qcarintadd = 0.0;
-      _itQuantities.clear();
-      _customExpenseController.clear();
+      enterquentity = 0.0;
+      itQuantities.clear();
+      customExpenseController.clear();
       invoiceNumberController.clear();
       uniteprice.clear();
-      _clearItemDetailsList();
+      clearItemDetailsList();
       kataNumberController.clear();
     });
   }
 
-  double _calculateTotalAmount() {
-    return _itemDetailsList.fold(0.0, (sum, item) => sum + (item['quantity'] * item['unitPrice']));
+  double calculateTotalAmount() {
+    return itemDetailsList.fold(
+        0.0, (sum, item) => sum + (item['quantity'] * item['unitPrice']));
   }
 
-  double _calculateTotalQuantity() {
-    return _itemDetailsList.fold(0.0, (sum, item) => sum + item['quantity']);
+  double calculateTotalQuantity() {
+    return itemDetailsList.fold(0.0, (sum, item) => sum + item['quantity']);
   }
 
-  double _calculateTotalUnitPrice() {
-    return _itemDetailsList.fold(0.0, (sum, item) => sum + item['unitPrice']);
+  double calculateTotalUnitPrice() {
+    return itemDetailsList.fold(0.0, (sum, item) => sum + item['unitPrice']);
   }
 
-  ListView _buildItemDetailsList() {
+  ListView buildItemDetailsList() {
     return ListView.builder(
       shrinkWrap: true,
-      itemCount: _itemDetailsList.length + 1, // Add one for the totals row
+      itemCount: itemDetailsList.length + 1, // Add one for the totals row
       itemBuilder: (context, index) {
-        if (index == _itemDetailsList.length) {
-          totalAmount = _calculateTotalAmount().toStringAsFixed(2);
-          final totalQuantity = _calculateTotalQuantity().toStringAsFixed(2);
-          final totalUnitPrice = _calculateTotalUnitPrice().toStringAsFixed(2);
+        if (index == itemDetailsList.length) {
+          totalAmount = calculateTotalAmount().toStringAsFixed(2);
+          final totalQuantity = calculateTotalQuantity().toStringAsFixed(2);
+          final totalUnitPrice = calculateTotalUnitPrice().toStringAsFixed(2);
 
           // Totals row
           return ListTile(
-            title: Text('Totals', style: TextStyle(fontWeight: FontWeight.bold)),
+            title:
+                Text('Totals', style: TextStyle(fontWeight: FontWeight.bold)),
             subtitle: Text(
-  'Total Amount: $totalAmount, Total Quantity: $totalQuantity, Total Unit Price: $totalUnitPrice',
-  style: TextStyle(
-    fontSize: 13,
-    fontWeight: FontWeight.bold,
-    fontStyle: FontStyle.italic,
-   // Neon Green
-    shadows: [
-      Shadow(
-        color: Colors.black.withOpacity(0.5),
-        offset: Offset(2, 2),
-        blurRadius: 5,
-      ),
-    ],
-    fontFamily: 'Roboto',
-  ),
-),
-
+              'Total Amount: $totalAmount, Total Quantity: $totalQuantity, Total Unit Price: $totalUnitPrice',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                fontStyle: FontStyle.italic,
+                // Neon Green
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withOpacity(0.5),
+                    offset: Offset(2, 2),
+                    blurRadius: 5,
+                  ),
+                ],
+                fontFamily: 'Roboto',
+              ),
+            ),
           );
         } else {
-          final item = _itemDetailsList[index];
+          final item = itemDetailsList[index];
           return ListTile(
-  title: Text(
-    item['itemName'],
-    style: TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.bold,
-      color: Colors.indigo[800], // Professional dark blue
-    ),
-  ),
-  subtitle: Text(
-    'Category: ${item['category']}, Quantity: ${item['quantity']}, Unit Price: ${item['unitPrice']}',
-    style: TextStyle(
-      color: Colors.black, // Subtle grey for subtitle
-      fontSize: 13,
-    ),
-  ),
-  tileColor: Colors.grey[50], // Very light grey background
-  shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(8), // Rounded corners
-    side: BorderSide(color: Colors.grey[200]!), // Subtle border
-  ),
-  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-  leading: Icon(
-    Icons.inventory_2,
-    color: Colors.indigo[400], // Matching icon color
-  ),
-  // Add hover effect with Material widget
-  hoverColor: Colors.indigo[50],
-);
+            title: Text(
+              item['itemName'],
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.indigo[800], // Professional dark blue
+              ),
+            ),
+            subtitle: Text(
+              'Category: ${item['category']}, Quantity: ${item['quantity']}, Unit Price: ${item['unitPrice']}',
+              style: TextStyle(
+                color: Colors.black, // Subtle grey for subtitle
+                fontSize: 13,
+              ),
+            ),
+            tileColor: Colors.grey[50], // Very light grey background
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8), // Rounded corners
+              side: BorderSide(color: Colors.grey[200]!), // Subtle border
+            ),
+            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            leading: Icon(
+              Icons.inventory_2,
+              color: Colors.indigo[400], // Matching icon color
+            ),
+            // Add hover effect with Material widget
+            hoverColor: Colors.indigo[50],
+          );
         }
       },
     );
@@ -302,9 +310,8 @@ void initState() {
 
     double quantity =
         double.tryParse(item['quantity']?.toString() ?? '0') ?? 0.0;
-          double total =
-        double.tryParse(item['total']?.toString() ?? '0') ?? 0.0;
-    Checkqunt = quantity;
+    double total = double.tryParse(item['total']?.toString() ?? '0') ?? 0.0;
+    stockquantity = quantity;
     textfiledunitprince = double.tryParse(uniteprice.text.trim()) ?? 0.0;
     double itemCode =
         double.tryParse(item['itemCode']?.toString() ?? '0') ?? 0.0;
@@ -317,58 +324,57 @@ void initState() {
         '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
     double balanceAmount = double.tryParse(squantite.text.trim()) ?? 0.0;
-  double buy =balanceAmount*textfiledunitprince;
+    double buy = balanceAmount * textfiledunitprince;
 
     setState(() {
       if (balanceAmount > quantity) {
+        setState(() {
+            showquantity=quantity;
+        });
+      
         errorquentity = 'null'; // Assign null (if it's expected to hold null)
       } else {
         errorquentity = ''; // Assign an empty string
         quantity = quantity - balanceAmount; // Update quantity
-    
-        _itemDetailsList.add({
-        'itemName': itemName,
-        'category': category,
-        'quantity': balanceAmount,
-        'unitPrice': textfiledunitprince,
-        'total':total,
-       
-      });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorquentity == 'null'
-              ? 'Error: Insufficient quantity'
-              : 'Quantity updated successfully'),
-          duration: Duration(seconds: 3),
-        ),
-      );
-         var existingKey = stockBox.keys.firstWhere((key) {
-      var existingItem = stockBox.get(key);
-      return existingItem['itemName'] == itemName &&
-          existingItem['category'] == category;
-    }, orElse: () => null);
-    if (existingKey != null) {
-      stockBox.put(existingKey, {
-        'itemName': itemName,
-        'category': category,
-        'quantity': quantity,
-        'itemCode': itemCode,
-        'unitPrice': unitPrice,
-        'dateAdded': formattedDate,
-        'total':total,
-        'buy':buy,
-      });
-debugPrint('$quantity');
-      
-    }
-        _updateBalance();
-        _clearItemDetails();
+        itemDetailsList.add({
+          'itemName': itemName,
+          'category': category,
+          'quantity': balanceAmount,
+          'unitPrice': textfiledunitprince,
+          'total': total,
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorquentity == 'null'
+                ? 'Error: Insufficient quantity'
+                : 'Quantity updated successfully'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+        var existingKey = stockBox.keys.firstWhere((key) {
+          var existingItem = stockBox.get(key);
+          return existingItem['itemName'] == itemName &&
+              existingItem['category'] == category;
+        }, orElse: () => null);
+        if (existingKey != null) {
+          stockBox.put(existingKey, {
+            'itemName': itemName,
+            'category': category,
+            'quantity': quantity,
+            'itemCode': itemCode,
+            'unitPrice': unitPrice,
+            'dateAdded': formattedDate,
+            'total': total,
+            'buy': buy,
+          });
+          debugPrint('$quantity');
+        }
+        updateBalance();
+        clearItemDetails();
       }
     });
-
- 
-
 
     return quantity;
   }
@@ -396,17 +402,17 @@ debugPrint('$quantity');
   }
 
   void saveprint() {
-    if (customername.text=='' || _itemQuantities.isEmpty || cname == null) {
+    if (customername.text == '' || _itemQuantities.isEmpty || cname == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Please fill in all required fields!")),
       );
       return;
     } else {
-      _generateReceipt;
+      generateReceipt;
     }
   }
 
-  Future<void> _fetchStockData() async {
+  Future<void> fetchStockData() async {
     final stockBox = Hive.box('stock');
     final stockList = stockBox.values.toList();
     setState(() {
@@ -429,7 +435,7 @@ debugPrint('$quantity');
     });
   }
 
-  void _handleAeroSelection(String selectedItem) {
+  void handleAeroSelection(String selectedItem) {
     if (selectedItem == "Aero") {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('You have selected Aero.')),
@@ -437,17 +443,17 @@ debugPrint('$quantity');
     }
   }
 
-  void _addCustomExpense(String customExpense) {
+  void addCustomExpense(String customExpense) {
     setState(() {
-      if (!_expenseItems.contains(customExpense)) {
-        _expenseItems.insert(
-            _expenseItems.length - 1, customExpense); // Add before "Other"
+      if (!expenseItems.contains(customExpense)) {
+        expenseItems.insert(
+            expenseItems.length - 1, customExpense); // Add before "Other"
       }
-      _selectedExpense = customExpense;
+      selectedExpense = customExpense;
     });
   }
 
-  Widget _buildText({
+  Widget buildText({
     required TextEditingController controller,
     required String labelText,
     TextInputType? keyboardType,
@@ -464,9 +470,9 @@ debugPrint('$quantity');
     );
   }
 
-  void _updateunitPriceAmount() {
+  void updateunitPriceAmount() {
     setState(() {
-      _unitPriceAmount = _itemQuantities.entries.fold(
+      unitPriceAmount = _itemQuantities.entries.fold(
         0.0,
         (sum, entry) {
           final category = entry.key;
@@ -478,12 +484,10 @@ debugPrint('$quantity');
         },
       );
       final amountPaid = double.tryParse(amountpaid.text) ?? 0.0;
-      _balanceAmount = _unitPriceAmount - amountPaid;
-      if (_balanceAmount < 0) _balanceAmount = 0;
+      balanceAmount = unitPriceAmount - amountPaid;
+      if (balanceAmount < 0) balanceAmount = 0;
     });
   }
-
- 
 
   Widget multicatagrory() {
     return Column(
@@ -491,17 +495,16 @@ debugPrint('$quantity');
       children: [
         SizedBox(height: 8.0),
         GestureDetector(
-          onTap: _showMultiSelectItemDialog,
+          onTap: showMultiSelectItemDialog,
           child: Container(
             padding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0),
-          decoration: BoxDecoration(
-  border: Border.all(
-    color: Colors.black,
-    width: 2.0, // Adjust the width to make the border bold
-  ),
-  borderRadius: BorderRadius.circular(8.0),
-),
-
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: Colors.black,
+                width: 2.0, // Adjust the width to make the border bold
+              ),
+              borderRadius: BorderRadius.circular(8.0),
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -523,22 +526,24 @@ debugPrint('$quantity');
     );
   }
 
-  void _updateBalance() {
-    final double amountPaid = double.tryParse(amountpaid.text) ?? 0.0;
-    TotalAmount = _calculateTotalAmount();
+void updateBalance() {
+  final amountPaid = double.tryParse(amountpaid.text) ?? 0.0;
+  final totalAmount = calculateTotalAmount();
 
-    setState(() {
-      if (amountPaid > TotalAmount) {
-      _errorMessage = "null";
-        _balanceAmount = TotalAmount - amountPaid; // Reset balance
-      } else {
-        _errorMessage = "null";
-        _balanceAmount = TotalAmount - amountPaid;
-      }
-    });
-  }
+  setState(() {
+    if (amountPaid > totalAmount) {
+      errorMessage = "bigto"; // Assuming "bigto" is the error message for this case
+      balanceAmount = totalAmount - amountPaid; // Reset balance
+    } else {
+      errorMessage = "null";
+      balanceAmount = totalAmount - amountPaid;
+    }
+    TotalAmount.text = totalAmount.toStringAsFixed(2);
+  });
+}
 
-  void _showMultiSelectItemDialog() {
+
+  void showMultiSelectItemDialog() {
     if (selectedItem == null) return;
     bool isCheck = false;
 
@@ -548,89 +553,93 @@ debugPrint('$quantity');
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
             return AlertDialog(
-  title: Text(
-    'Select Categories',
-    style: TextStyle(
-      fontSize: 24,
-      fontWeight: FontWeight.bold,
-      color: Color(0xFF1A73E8), // Google Blue - modern and widely used
-      letterSpacing: -0.5, // Tighter letter spacing for modern look
-    ),
-  ),
-  content: SingleChildScrollView(
-    child: ListBody(
-      children: _stockData[selectedItem]!
-          .map((categoryDetails) {
-            final categoryName = categoryDetails['category'];
-            return CheckboxListTile(
               title: Text(
-                categoryName,
+                'Select Categories',
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF202124), // Material Dark - better readability
-                  height: 1.2, // Improved line height
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color:
+                      Color(0xFF1A73E8), // Google Blue - modern and widely used
+                  letterSpacing: -0.5, // Tighter letter spacing for modern look
                 ),
               ),
-              value: _itemQuantities.containsKey(categoryName),
-              onChanged: (bool? isChecked) {
-                setState(() {
-                  if (isChecked == true) {
-                    _itemQuantities[categoryName] = 1;
-                    cname = categoryName;
-                
-                  } else {
-                    _itemQuantities.remove(categoryName);
-                  }
-                  _updateunitPriceAmount();
-                });
-              },
-              activeColor: Color(0xFF1A73E8), // Google Blue
-              checkColor: Colors.white,
-              contentPadding: EdgeInsets.symmetric(
-                vertical: 12.0,
-                horizontal: 16.0,
+              content: SingleChildScrollView(
+                child: ListBody(
+                  children: _stockData[selectedItem]!
+                      .map((categoryDetails) {
+                        final categoryName = categoryDetails['category'];
+                        return CheckboxListTile(
+                          title: Text(
+                            categoryName,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Color(
+                                  0xFF202124), // Material Dark - better readability
+                              height: 1.2, // Improved line height
+                            ),
+                          ),
+                          value: _itemQuantities.containsKey(categoryName),
+                          onChanged: (bool? isChecked) {
+                            setState(() {
+                              if (isChecked == true) {
+                                _itemQuantities[categoryName] = 1;
+                                cname = categoryName;
+                              } else {
+                                _itemQuantities.remove(categoryName);
+                              }
+                              updateunitPriceAmount();
+                            });
+                          },
+                          activeColor: Color(0xFF1A73E8), // Google Blue
+                          checkColor: Colors.white,
+                          contentPadding: EdgeInsets.symmetric(
+                            vertical: 12.0,
+                            horizontal: 16.0,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                          tileColor: Colors.transparent,
+                          selectedTileColor:
+                              Color(0xFFE8F0FE), // Light blue when selected
+                        );
+                      })
+                      .toList()
+                      .cast<Widget>(),
+                ),
               ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  style: TextButton.styleFrom(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  ),
+                  child: Text(
+                    'OK',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A73E8), // Google Blue
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ],
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.0),
+                borderRadius: BorderRadius.circular(16.0),
               ),
-              tileColor: Colors.transparent,
-              selectedTileColor: Color(0xFFE8F0FE), // Light blue when selected
+              backgroundColor: Colors.white,
+              elevation: 8.0, // Reduced elevation for modern look
+              insetPadding:
+                  EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
             );
-          })
-          .toList()
-          .cast<Widget>(),
-    ),
-  ),
-  actions: [
-    TextButton(
-      onPressed: () {
-        Navigator.of(context).pop();
-      },
-      child: Text(
-        'OK',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: Color(0xFF1A73E8), // Google Blue
-          letterSpacing: 0.5,
-        ),
-      ),
-      style: TextButton.styleFrom(
-        padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-      ),
-    ),
-  ],
-  shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(16.0),
-  ),
-  backgroundColor: Colors.white,
-  elevation: 8.0, // Reduced elevation for modern look
-  insetPadding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
-);
           },
         );
       },
@@ -639,107 +648,109 @@ debugPrint('$quantity');
     });
   }
 
-  Widget _buildDropdown<T>({
+  Widget buildDropdown<T>({
     required String label,
     required List<T> items,
     required ValueChanged<T?> onChanged,
     T? value,
   }) {
     return DropdownButtonFormField<T>(
-  value: value,
-  decoration: InputDecoration(
-    labelText: label,
-    labelStyle: TextStyle(
-      color: Color(0xFF1A73E8),
-      fontSize: 16,
-      fontWeight: FontWeight.w500,
-    ),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(
-        color: Colors.black,
-        width: 2,
+      value: value,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(
+          color: Color(0xFF1A73E8),
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: Colors.black,
+            width: 2,
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: Colors.black,
+            width: 2,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: Color(0xFF1A73E8),
+            width: 2,
+          ),
+        ),
+        filled: true,
+        fillColor: Colors.transparent,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: Colors.red.shade400,
+            width: 2,
+          ),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: Colors.red.shade400,
+            width: 2,
+          ),
+        ),
       ),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(
-        color: Colors.black,
-        width: 2,
-      ),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(
+      icon: Icon(
+        Icons.arrow_drop_down_rounded,
         color: Color(0xFF1A73E8),
-        width: 2,
+        size: 28,
       ),
-    ),
-    filled: true,
-    fillColor: Colors.transparent,
-    contentPadding: EdgeInsets.symmetric(
-      horizontal: 16,
-      vertical: 16,
-    ),
-    errorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(
-        color: Colors.red.shade400,
-        width: 2,
-      ),
-    ),
-    focusedErrorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(
-        color: Colors.red.shade400,
-        width: 2,
-      ),
-    ),
-  ),
-  icon: Icon(
-    Icons.arrow_drop_down_rounded,
-    color: Color(0xFF1A73E8),
-    size: 28,
-  ),
-  dropdownColor: Colors.white,
-  style: TextStyle(
-    color: Color(0xFF1A73E8),
-    fontSize: 16,
-    fontWeight: FontWeight.w400,
-  ),
-  onChanged: (T? selectedValue) {
-    if (selectedValue != null && selectedValue is String) {
-      setState(() {
-        selectedItem = selectedValue;
-        _fetchCategoriesForItem(selectedItem!);
-      });
-    }
-    onChanged(selectedValue);
-  },
-  items: items.map((item) => DropdownMenuItem<T>(
-    value: item,
-    child: Text(
-      item.toString(),
+      dropdownColor: Colors.white,
       style: TextStyle(
-        color: Color(0xFF202124),
+        color: Color(0xFF1A73E8),
         fontSize: 16,
         fontWeight: FontWeight.w400,
       ),
-    ),
-  )).toList(),
-  isExpanded: true,  // Makes dropdown take full width
-  hint: Text(
-    'Select an option',
-    style: TextStyle(
-      color: Color(0xFF757575),
-      fontSize: 16,
-      fontWeight: FontWeight.w400,
-    ),
-  ),
-);
+      onChanged: (T? selectedValue) {
+        if (selectedValue != null && selectedValue is String) {
+          setState(() {
+            selectedItem = selectedValue;
+            fetchCategoriesForItem(selectedItem!);
+          });
+        }
+        onChanged(selectedValue);
+      },
+      items: items
+          .map((item) => DropdownMenuItem<T>(
+                value: item,
+                child: Text(
+                  item.toString(),
+                  style: TextStyle(
+                    color: Color(0xFF202124),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ))
+          .toList(),
+      isExpanded: true, // Makes dropdown take full width
+      hint: Text(
+        'Select an option',
+        style: TextStyle(
+          color: Color(0xFF757575),
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+        ),
+      ),
+    );
   }
 
-  void _fetchCategoriesForItem(String selectedItem) {
+  void fetchCategoriesForItem(String selectedItem) {
     setState(() {
       _itemQuantities.clear();
       final categories = _stockData[selectedItem];
@@ -753,23 +764,25 @@ debugPrint('$quantity');
       }
     });
   }
-  Future<void> _generateReceipt() async {
+
+  Future<void> generateReceipt() async {
     final customer = customername.text;
-    final data = _dateAddedController.text.trim();
+    final Total =TotalAmount.text;
+    final data = dateAddedController.text.trim();
     final contactInfo = contect.text.trim();
     final unitPrice = double.tryParse(uniteprice.text) ?? 0.0;
     final customerNumber = contect.text;
     final pwgmimge = await gmImage();
     final pwImage = await buildImage();
     debugPrint('customer$customer');
-    if (_formKey.currentState?.validate() ?? false) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Form is valid!')));
-    }
+    // if (_formKey.currentState?.validate() ?? false) {
+    //   ScaffoldMessenger.of(context)
+    //       .showSnackBar(SnackBar(content: Text('Form is valid!')));
+    // }
 
-if(iteamname!=null){
-    getQuantityFromStock(iteamname!, cname!);
-}
+    if (iteamname != null) {
+      getQuantityFromStock(iteamname!, cname!);
+    }
     if (errorquentity == 'null') {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('your are enter invilde quantity')),
@@ -795,210 +808,250 @@ if(iteamname!=null){
 
     try {
       final pdf = pw.Document();
-     pdf.addPage(
-  pw.Page(
-    build: (pw.Context context) => pw.Stack(
-      children: [
-        pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
-                pw.Container(
-                  width: 50,
-                  height: 50,
-                  child: pwgmimge,
-                ),
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.center,
-                  children: [
-                    pw.Text('Apex Solar Bannu Branch ',
-                        style: pw.TextStyle(
-                            fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                    pw.Text(
-                        'Back side central jail, Link Road, Bannu Township',
-                        style: pw.TextStyle(fontSize: 10)),
-                    pw.Text("Contact:", style: pw.TextStyle(fontSize: 10)),
-                    pw.Text("(0928)633753", style: pw.TextStyle(fontSize: 10)),
-                  ],
-                ),
-                pw.Container(
-                  width: 50,
-                  height: 50,
-                  child: pwImage,
-                ),
-              ],
-            ),
-            pw.Divider(),
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
-                pw.Text('Bill To: $customer', style: pw.TextStyle(fontSize: 12)),
-                pw.Text('InvoiceNO: $currentInvoiceNumber', style: pw.TextStyle(fontSize: 12)),
-                pw.Text('Date: $data', style: pw.TextStyle(fontSize: 12)),
-              ],
-            ),
-            pw.Row(children: [
-              pw.Text("CustomerNumber: $countectnumber", style: pw.TextStyle(fontSize: 12)),
-            ]),
-            pw.SizedBox(height: 10),
-            pw.Table(
-              border: pw.TableBorder.all(),
-              children: [
-                pw.TableRow(
-                  children: [
-                    pw.Text('s.No',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                    pw.Text('  Iteam Name',
-                        style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                    pw.Text(' Category',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                    pw.Text('Quantity',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                    pw.Text('Unit Price',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                    pw.Text('Amount',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                  ],
-                ),
-                ..._itemDetailsList.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final item = entry.value;
-                  final itemName = item['itemName'];
-                  final category = item['category'];
-                  final quantity = item['quantity'];
-                  final unitPrice = item['unitPrice'];
-                  final Amount = quantity * unitPrice;
-
-                  return pw.TableRow(
+      pdf.addPage(
+        pw.Page(
+          build: (pw.Context context) => pw.Stack(
+            children: [
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: pw.CrossAxisAlignment.center,
                     children: [
-                      pw.Text((index + 1).toString(), style: pw.TextStyle(fontSize: 10)),
-                      pw.Text(itemName, style: pw.TextStyle(fontSize: 10)),
-                      pw.Text(category, style: pw.TextStyle(fontSize: 10)),
-                      pw.Text(quantity.toString(), style: pw.TextStyle(fontSize: 10)),
-                      pw.Text(unitPrice.toStringAsFixed(2), style: pw.TextStyle(fontSize: 10)),
-                      pw.Text(Amount.toStringAsFixed(2), style: pw.TextStyle(fontSize: 10)),
+                      pw.Container(
+                        width: 50,
+                        height: 50,
+                        child: pwgmimge,
+                      ),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.center,
+                        children: [
+                          pw.Text('Apex Solar Bannu Branch ',
+                              style: pw.TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: pw.FontWeight.bold)),
+                          pw.Text(
+                              'Back side central jail, Link Road, Bannu Township',
+                              style: pw.TextStyle(fontSize: 10)),
+                          pw.Text("Contact:",
+                              style: pw.TextStyle(fontSize: 10)),
+                          pw.Text("(0928)633753",
+                              style: pw.TextStyle(fontSize: 10)),
+                        ],
+                      ),
+                      pw.Container(
+                        width: 50,
+                        height: 50,
+                        child: pwImage,
+                      ),
                     ],
-                  );
-                }).toList(),
-                // Totals Row
-                pw.TableRow(
-                  children: [
-                    pw.Text('Totals',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                    pw.Text(''),
-                    pw.Text(''),
-                    pw.Text(''),
-                    pw.Text(''),
-                    pw.Text(_calculateTotalAmount().toStringAsFixed(2), style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                  ],
-                ),
-              ],
-            ),
-            pw.SizedBox(height: 10),
-            pw.Text(
-              isHandSelected
-                  ? 'Payment Method: by Hand'
-                  : 'Payment Method: by Bank',
-              style: pw.TextStyle(
-                fontSize: 10,
-                fontWeight: pw.FontWeight.bold,
-              ),
-            ),
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.end,
-              children: [
-                pw.Text('Amount Paid: ${amountpaid.text}', style: pw.TextStyle(fontSize: 10)),
-              ],
-            ),
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.end,
-              children: [
-                pw.Text('Bankname : ${selectedbank}', style: pw.TextStyle(fontSize: 10)),
-              ],
-            ),
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.end,
-              children: [
-                pw.Text('Balance Amount: $_balanceAmount', style: pw.TextStyle(fontSize: 10)),
-              ],
-            ),
-            pw.Divider(),
-            pw.SizedBox(height: 20),
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.start,
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  mainAxisAlignment: pw.MainAxisAlignment.start,
-                  children: [
-                    pw.Text("Head office:", style: pw.TextStyle(fontSize: 10)),
-                    pw.Text("Naseer Abad Stop,", style: pw.TextStyle(fontSize: 10)),
-                    pw.Text("Opp Kohinoor Mills, Peshawar Road", style: pw.TextStyle(fontSize: 10)),
-                    pw.Text("Rawalpindi,", style: pw.TextStyle(fontSize: 10)),
-                    pw.Text("Website: www.gmsolar.com.pk", style: pw.TextStyle(fontSize: 10)),
-                    pw.Text("Email: gmainoor_afridi@yahoo.com", style: pw.TextStyle(fontSize: 10)),
-                  ],
-                ),
-                pw.SizedBox(height: 10, width: 150),
-                pw.Column(
-                  mainAxisAlignment: pw.MainAxisAlignment.center,
-                  crossAxisAlignment: pw.CrossAxisAlignment.center,
-                  children: [
-                    // pw.Text("              ", style: pw.TextStyle(fontSize: 10)),
-                      pw.Text("SIGNATURE:______________",
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-        pw.Text("Gudam Bannu Link Road Behind", style: pw.TextStyle(fontSize: 10)),
-        pw.Text("Bannu Jail, KPK", style: pw.TextStyle(fontSize: 10)),
-                  ],
-                ),
-             
-              ],
-            ),
-          ],
-        ),
-      
-      ],
-    ),
-  ),
-);
-if(_dateAddedController.text==''){
-      _dateAddedController.text=DateFormat('yyyy-MM-dd').format(date);
-}
+                  ),
+                  pw.Divider(),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text('Bill To: $customer',
+                          style: pw.TextStyle(fontSize: 12)),
+                      pw.Text('InvoiceNO: $currentInvoiceNumber',
+                          style: pw.TextStyle(fontSize: 12)),
+                      pw.Text('Date: $data', style: pw.TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                  pw.Row(children: [
+                    pw.Text("CustomerNumber: $countectnumber",
+                        style: pw.TextStyle(fontSize: 12)),
+                  ]),
+                  pw.SizedBox(height: 10),
+                  pw.Table(
+                    border: pw.TableBorder.all(),
+                    children: [
+                      pw.TableRow(
+                        children: [
+                          pw.Text('s.No',
+                              style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                  fontSize: 10)),
+                          pw.Text('  Iteam Name',
+                              style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                  fontSize: 10)),
+                          pw.Text(' Category',
+                              style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                  fontSize: 10)),
+                          pw.Text('Quantity',
+                              style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                  fontSize: 10)),
+                          pw.Text('Unit Price',
+                              style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                  fontSize: 10)),
+                          pw.Text('Amount',
+                              style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                  fontSize: 10)),
+                        ],
+                      ),
+                      ...itemDetailsList.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final item = entry.value;
+                        final itemName = item['itemName'];
+                        final category = item['category'];
+                        final quantity = item['quantity'];
+                        final unitPrice = item['unitPrice'];
+                        final Amount = quantity * unitPrice;
 
-   
-final transactionData = {
+                        return pw.TableRow(
+                          children: [
+                            pw.Text((index + 1).toString(),
+                                style: pw.TextStyle(fontSize: 10)),
+                            pw.Text(itemName,
+                                style: pw.TextStyle(fontSize: 10)),
+                            pw.Text(category,
+                                style: pw.TextStyle(fontSize: 10)),
+                            pw.Text(quantity.toString(),
+                                style: pw.TextStyle(fontSize: 10)),
+                            pw.Text(unitPrice.toStringAsFixed(2),
+                                style: pw.TextStyle(fontSize: 10)),
+                            pw.Text(Amount.toStringAsFixed(2),
+                                style: pw.TextStyle(fontSize: 10)),
+                          ],
+                        );
+                      }),
+                      // Totals Row
+                      pw.TableRow(
+                        children: [
+                          pw.Text('Totals',
+                              style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                  fontSize: 10)),
+                          pw.Text(''),
+                          pw.Text(''),
+                          pw.Text(''),
+                          pw.Text(''),
+                          pw.Text(calculateTotalAmount().toStringAsFixed(2),
+                              style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                  fontSize: 10)),
+                        ],
+                      ),
+                    ],
+                  ),
+                  pw.SizedBox(height: 10),
+                  pw.Text(
+                    isHandSelected
+                        ? 'Payment Method: by Hand'
+                        : 'Payment Method: by Bank',
+                    style: pw.TextStyle(
+                      fontSize: 10,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.end,
+                    children: [
+                      pw.Text('Amount Paid: ${amountpaid.text}',
+                          style: pw.TextStyle(fontSize: 10)),
+                    ],
+                  ),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.end,
+                    children: [
+                      pw.Text('Bankname : $selectedbank',
+                          style: pw.TextStyle(fontSize: 10)),
+                    ],
+                  ),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.end,
+                    children: [
+                      pw.Text('Balance Amount: $balanceAmount',
+                          style: pw.TextStyle(fontSize: 10)),
+                    ],
+                  ),
+                  pw.Divider(),
+                  pw.SizedBox(height: 20),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.start,
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        mainAxisAlignment: pw.MainAxisAlignment.start,
+                        children: [
+                          pw.Text("Head office:",
+                              style: pw.TextStyle(fontSize: 10)),
+                          pw.Text("Naseer Abad Stop,",
+                              style: pw.TextStyle(fontSize: 10)),
+                          pw.Text("Opp Kohinoor Mills, Peshawar Road",
+                              style: pw.TextStyle(fontSize: 10)),
+                          pw.Text("Rawalpindi,",
+                              style: pw.TextStyle(fontSize: 10)),
+                          pw.Text("Website: www.gmsolar.com.pk",
+                              style: pw.TextStyle(fontSize: 10)),
+                          pw.Text("Email: gmainoor_afridi@yahoo.com",
+                              style: pw.TextStyle(fontSize: 10)),
+                        ],
+                      ),
+                      pw.SizedBox(height: 10, width: 150),
+                      pw.Column(
+                        mainAxisAlignment: pw.MainAxisAlignment.center,
+                        crossAxisAlignment: pw.CrossAxisAlignment.center,
+                        children: [
+                          // pw.Text("              ", style: pw.TextStyle(fontSize: 10)),
+                          pw.Text("SIGNATURE:______________",
+                              style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                  fontSize: 10)),
+                          pw.Text("Gudam Bannu Link Road Behind",
+                              style: pw.TextStyle(fontSize: 10)),
+                          pw.Text("Bannu Jail, KPK",
+                              style: pw.TextStyle(fontSize: 10)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+
+// Assuming _dateAddedController is a TextEditingController
+      if (dateAddedController.text.isEmpty) {
+        DateTime now = DateTime.now();
+        dateAddedController.text = DateFormat('yyyy-MM-dd').format(now);
+      }
+
+      final transactionData = {
         'customerName': customer,
         'contactInfo': contactInfo,
-        'items': _itemDetailsList,
-        'amountPaid': double.tryParse(amountpaid.text) ?? 0.0,
-        'balanceAmount': _balanceAmount,
-        'date': _dateAddedController.text ,
+        'items': itemDetailsList,
+        'amountPaid': amountpaid.text,
+        'balanceAmount': balanceAmount,
+        'date': dateAddedController.text,
         'AmountExpense': amountexpanses.text,
-        'Expense': _selectedExpense,
-        'byhandbybank': 
-                isHandSelected
-                    ? 'by Hand'
-                    : 'byBank',
-        'kataNumberController':kataNumberController.text,
+        'Expense': selectedExpense,
+        'byhandbybank': isHandSelected ? 'by Hand' : 'byBank',
+        'kataNumberController': kataNumberController.text,
         'InvoiceNO': currentInvoiceNumber.toDouble(),
-         'Total':TotalAmount,
-         'Bankname':selectedbank,        
+        'Total': Total,
+        'Bankname': selectedbank,
       };
-      if (_balanceAmount == 0.0) {
+      if (balanceAmount == 0.0) {
         //  await Hive.box('receipts').add(transactionData);
+         await Hive.box('receipts').add(transactionData);
         await Hive.box('dailyupdata').add(transactionData);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Data saved to Roznamcha  Records successfully!")),
+          SnackBar(
+              content: Text("Data saved to Roznamcha  Records successfully!")),
         );
       } else {
-          await Hive.box('dailyupdata').add(transactionData);
+        await Hive.box('dailyupdata').add(transactionData);
         await Hive.box('receipts').add(transactionData);
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Data saved to Kata successfully!")),
         );
@@ -1008,7 +1061,7 @@ final transactionData = {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Receipt saved and printed successfully!")),
       );
-      _clearForm();
+      clearForm();
     } catch (e) {
       debugPrint("Error during receipt generation/printing: $e");
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1016,6 +1069,7 @@ final transactionData = {
       );
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1027,18 +1081,14 @@ final transactionData = {
           fontSize: 26,
           fontWeight: FontWeight.bold,
           color: Colors.black,
-          fontFamily:
-              'Roboto',
+          fontFamily: 'Roboto',
         ),
       ))),
       body: Container(
         height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Colors.white,
-              Colors.blue
-            ],
+            colors: const [Colors.white, Colors.blue],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -1048,10 +1098,7 @@ final transactionData = {
           width: 700,
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                Colors.white,
-                Colors.blue
-              ],
+              colors: const [Colors.white, Colors.blue],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -1064,198 +1111,235 @@ final transactionData = {
                   padding: const EdgeInsets.only(left: 10),
                   child: Row(
                     children: [
-                     
-Container(
-                                            height: 40,
-                                            width: 300,
-                                            child: Padding(
-                                              padding: const EdgeInsets.only(top: 10),
- child: TextField(
-                                                controller: _dateAddedController,
-                                                decoration: InputDecoration(
-                                                                  labelText: 'Date (yyyy-MM-dd)',
-                                                                  labelStyle: TextStyle(color: Colors.black),
-                                                                    border: OutlineInputBorder(
-borderSide: BorderSide(
-                                                      width: 2.0, // Adjust the width to make the border bold
-                                                      color: Colors.black, // You can also set the color of the border
-                                                    ),
-                                                  ),
-enabledBorder: OutlineInputBorder(
-                                                    borderSide: BorderSide(
-                                                      width: 2.0, // Adjust the width to make the border bold
-                                                      color: Colors.black, // You can also set the color of the border
-                                                    ),
-                                                  ),
- focusedBorder: OutlineInputBorder(
-                                                    borderSide: BorderSide(
-                                                      width: 2.0, // Adjust the width to make the border bold
-                                                      color: Colors.black, // You can also set the color of the border
-                                                    ),
-                                                  ),
-                                                ),
-                                                
-                                                readOnly: true,
-onTap: () async {
-DateTime? pickedDate = await showDatePicker(
-                                                                    context: context,
-                                                                    initialDate: DateTime.now(),
-                                                                    firstDate: DateTime(2000),
-                                                                    lastDate: DateTime(2101),
-                                                                  );
-  if (pickedDate != null) {
-_dateAddedController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
-                                                                  }
-                                                },
-                                              ),
-                                            ),
-                                          ),
-                                            SizedBox(width: 50),
-                                           Text(
- 'Invoicenumber: $currentInvoiceNumber',
-                        style: const TextStyle(
-color: Colors.black, fontWeight: FontWeight.bold),
+                      SizedBox(
+                        height: 40,
+                        width: 300,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: TextField(
+                            controller: dateAddedController,
+                            decoration: InputDecoration(
+                              labelText: 'Date (yyyy-MM-dd)',
+                              labelStyle: TextStyle(color: Colors.black),
+                              border: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  width:
+                                      2.0, // Adjust the width to make the border bold
+                                  color: Colors
+                                      .transparent, // You can also set the color of the border
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  width:
+                                      2.0, // Adjust the width to make the border bold
+                                  color: Colors
+                                      .transparent, // You can also set the color of the border
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  width:
+                                      2.0, // Adjust the width to make the border bold
+                                  color: Colors
+                                      .transparent, // You can also set the color of the border
+                                ),
+                              ),
+                            ),
+                            readOnly: true,
+                            onTap: () async {
+                              DateTime? pickedDate = await showDatePicker(
+                                context: context,
+                                initialDate: DateTime.now(),
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime(2101),
+                              );
+                              if (pickedDate != null) {
+                                dateAddedController.text =
+                                    DateFormat('yyyy-MM-dd').format(pickedDate);
+                              }
+                            },
+                          ),
+                        ),
                       ),
-                     
+                      SizedBox(width: 50),
+                      Text(
+                        'Invoicenumber: $currentInvoiceNumber',
+                        style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20),
+                      ),
                     ],
                   ),
                 ),
-SizedBox(height: 20,),
+                SizedBox(
+                  height: 20,
+                ),
                 Row(
-crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       child: Column(
                         children: [
-                           TextFormField(
-  controller: kataNumberController,
-  keyboardType: TextInputType.number,
-  inputFormatters: [
-    FilteringTextInputFormatter.digitsOnly,
-  ],
-  decoration: InputDecoration(
-    labelText: 'kataNumber',
-    border: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
-      ),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
-      ),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
-      ),
-    ),
-  ),
-  validator: (value) {
-    return null;
-  },
-),
-
-   SizedBox(height: 10),
- _buildDropdown<String>(
+                          TextFormField(
+                            controller: kataNumberController,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            decoration: InputDecoration(
+                              labelText: 'kataNumber',
+                              border: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  width:
+                                      2.0, // Adjust the width to make the border bold
+                                  color: Colors
+                                      .black, // You can also set the color of the border
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  width:
+                                      2.0, // Adjust the width to make the border bold
+                                  color: Colors
+                                      .black, // You can also set the color of the border
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  width:
+                                      2.0, // Adjust the width to make the border bold
+                                  color: Colors
+                                      .black, // You can also set the color of the border
+                                ),
+                              ),
+                            ),
+                            validator: (value) {
+                              return null;
+                            },
+                          ),
+                          SizedBox(height: 10),
+                          buildDropdown<String>(
                             label: 'iteam',
                             items: items,
                             value: selecteitem,
-onChanged: (value) => setState(() {
+                            onChanged: (value) => setState(() {
                               selecteitem = value;
                               sitem = value;
                               iteamname = value;
-                          
- _fetchCategoriesForItem(selecteitem!);
+
+                              fetchCategoriesForItem(selecteitem!);
                             }),
                           ),
                           SizedBox(height: 10),
-multicatagrory(),
+                          multicatagrory(),
                           SizedBox(height: 10),
-
                           TextField(
-  controller: squantite,
-  keyboardType: TextInputType.numberWithOptions(decimal: true),
-  inputFormatters: [
-    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-  ],
-  decoration: InputDecoration(
-    labelText: 'Quantity',
-    border: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
-      ),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
-      ),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
-      ),
-    ),
-  ),
-  onChanged: (value) {
-    setState(() {
- 
-      qcarintadd = double.tryParse(squantite.text.trim()) ?? 0.0;
-    });
-  },
-),
-
+                            controller: squantite,
+                            keyboardType:
+                                TextInputType.numberWithOptions(decimal: true),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                  RegExp(r'^\d+\.?\d{0,2}')),
+                            ],
+                            decoration: InputDecoration(
+                              labelText: 'Quantity',
+                              border: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  width:
+                                      2.0, // Adjust the width to make the border bold
+                                  color: Colors
+                                      .black, // You can also set the color of the border
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  width:
+                                      2.0, // Adjust the width to make the border bold
+                                  color: Colors
+                                      .black, // You can also set the color of the border
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  width:
+                                      2.0, // Adjust the width to make the border bold
+                                  color: Colors
+                                      .black, // You can also set the color of the border
+                                ),
+                              ),
+                            ),
+                            onChanged: (value) {
+                              setState(() {
+                                enterquentity =
+                                    double.tryParse(squantite.text.trim()) ??
+                                        0.0;
+                              });
+                            },
+                          ),
                           if (errorquentity == 'null')
- if (qcarintadd > Checkqunt)
+                            if (enterquentity > stockquantity)
                               Text(
-                                'your enter equentity is greater than stock',
-style: const TextStyle(
+                                ' Stock Quantity Equal to  $showquantity',
+                                style: const TextStyle(
                                     color: Colors.red,
                                     fontWeight: FontWeight.bold),
                               ),
-SizedBox(height: 10),
-                         TextField(
-  controller: uniteprice,
-  keyboardType: TextInputType.numberWithOptions(decimal: true),
-  inputFormatters: [
-    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-  ],
-  decoration: InputDecoration(
-    labelText: 'unite price',
-    border: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
-      ),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
-      ),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
-      ),
-    ),
-  ),
-  onChanged: (_) => _updateBalance(),
-),
-
-                          SizedBox(height: 15,),
+                          SizedBox(height: 10),
+                          TextField(
+                            controller: uniteprice,
+                            keyboardType:
+                                TextInputType.numberWithOptions(decimal: true),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                  RegExp(r'^\d+\.?\d{0,2}')),
+                            ],
+                            decoration: InputDecoration(
+                              labelText: 'unite price',
+                              border: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  width:
+                                      2.0, // Adjust the width to make the border bold
+                                  color: Colors
+                                      .black, // You can also set the color of the border
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  width:
+                                      2.0, // Adjust the width to make the border bold
+                                  color: Colors
+                                      .black, // You can also set the color of the border
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  width:
+                                      2.0, // Adjust the width to make the border bold
+                                  color: Colors
+                                      .black, // You can also set the color of the border
+                                ),
+                              ),
+                            ),
+                            onChanged: (_) => updateBalance(),
+                          ),
+                          SizedBox(
+                            height: 15,
+                          ),
                           ElevatedButton(
                             onPressed: () {
                               getQuantityFromStock(iteamname!, cname!);
-                          
                             },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blueAccent,
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              elevation: 5,
+                            ),
                             child: Text(
                               'Purchase',
                               style: TextStyle(
@@ -1264,108 +1348,107 @@ SizedBox(height: 10),
                                 fontSize: 16,
                               ),
                             ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blueAccent,
-                              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              elevation: 5,
-                            ),
                           ),
-
                         ],
                       ),
                     ),
-
                     SizedBox(width: 16.0),
                     Expanded(
                       child: Column(
                         children: [
-                         TextFormField(
-  controller: invoiceNumberController,
-  keyboardType: TextInputType.number,
-  inputFormatters: [
-    FilteringTextInputFormatter.digitsOnly,
-  ],
-  decoration: InputDecoration(
-    labelText: 'Invoice Number',
-    border: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
-      ),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
-      ),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
-      ),
-    ),
-  ),
-  validator: (value) {
-    return null;
-  },
-),
-
-   SizedBox(height: 10),
-   
-_buildTextField(
+                          TextFormField(
+                            controller: invoiceNumberController,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            decoration: InputDecoration(
+                              labelText: 'Invoice Number',
+                              border: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  width:
+                                      2.0, // Adjust the width to make the border bold
+                                  color: Colors
+                                      .black, // You can also set the color of the border
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  width:
+                                      2.0, // Adjust the width to make the border bold
+                                  color: Colors
+                                      .black, // You can also set the color of the border
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  width:
+                                      2.0, // Adjust the width to make the border bold
+                                  color: Colors
+                                      .black, // You can also set the color of the border
+                                ),
+                              ),
+                            ),
+                            validator: (value) {
+                              return null;
+                            },
+                          ),
+                          SizedBox(height: 10),
+                          _buildTextField(
                             controller: customername,
                             labelText: 'Customer Name',
                             //  name=customername.text.toString()
                           ),
                           SizedBox(height: 10),
                           Form(
-                            key: _formKey,
+                            key: formKey,
                             child: Column(
                               children: [
-                              TextFormField(
-  controller: contect,
-  keyboardType: TextInputType.number,
-  inputFormatters: [
-    FilteringTextInputFormatter.digitsOnly,
-    LengthLimitingTextInputFormatter(11),
-  ],
-  decoration: InputDecoration(
-    labelText: 'Number',
-    border: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
-      ),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
-      ),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
-      ),
-    ),
-  ),
-  validator: (value) {
-    countectnumber = value.toString();
+                                TextFormField(
+                                  controller: contect,
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                    LengthLimitingTextInputFormatter(11),
+                                  ],
+                                  decoration: InputDecoration(
+                                    labelText: 'Number',
+                                    border: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        width:
+                                            2.0, // Adjust the width to make the border bold
+                                        color: Colors
+                                            .black, // You can also set the color of the border
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        width:
+                                            2.0, // Adjust the width to make the border bold
+                                        color: Colors
+                                            .black, // You can also set the color of the border
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        width:
+                                            2.0, // Adjust the width to make the border bold
+                                        color: Colors
+                                            .black, // You can also set the color of the border
+                                      ),
+                                    ),
+                                  ),
+                                  validator: (value) {
+                                    countectnumber = value.toString();
 
-    if (value == null || value.isEmpty) {
-      return 'Please enter a customer number';
-    } else if (value.length < 11) {
-      return 'Customer number must be 11 digits';
-    }
-    return null;
-  },
-),
-
+                                    if (value == null || value.isEmpty) {
+                                      return 'Please enter a customer number';
+                                    } else if (value.length < 11) {
+                                      return 'Customer number must be 11 digits';
+                                    }
+                                    return null;
+                                  },
+                                ),
                               ],
                             ),
                           ),
@@ -1381,8 +1464,7 @@ _buildTextField(
                                     isHandSelected = value!;
                                   });
                                 },
-                                activeColor: Colors
-                                    .green,
+                                activeColor: Colors.green,
                               ),
                               Text(
                                 'by Cash',
@@ -1403,8 +1485,7 @@ _buildTextField(
                                     amountpaid.clear();
                                   });
                                 },
-                                activeColor: Colors
-                                    .blue,
+                                activeColor: Colors.blue,
                               ),
                               Text(
                                 'by Bank',
@@ -1418,38 +1499,44 @@ _buildTextField(
                               ),
                             ],
                           ),
-
                           isHandSelected
                               ? TextField(
-  controller: amountpaid,
-  keyboardType: TextInputType.numberWithOptions(decimal: true),
-  inputFormatters: [
-    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-  ],
-  decoration: InputDecoration(
-    labelText: 'Amount Paid',
-    border: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
-      ),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
-      ),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
-      ),
-    ),
-  ),
-  onChanged: (_) => _updateBalance(),
-)
-
+                                  controller: amountpaid,
+                                  keyboardType: TextInputType.numberWithOptions(
+                                      decimal: true),
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.allow(
+                                        RegExp(r'^\d+\.?\d{0,2}')),
+                                  ],
+                                  decoration: InputDecoration(
+                                    labelText: 'Amount Paid',
+                                    border: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        width:
+                                            2.0, // Adjust the width to make the border bold
+                                        color: Colors
+                                            .black, // You can also set the color of the border
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        width:
+                                            2.0, // Adjust the width to make the border bold
+                                        color: Colors
+                                            .black, // You can also set the color of the border
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        width:
+                                            2.0, // Adjust the width to make the border bold
+                                        color: Colors
+                                            .black, // You can also set the color of the border
+                                      ),
+                                    ),
+                                  ),
+                                  onChanged: (_) => updateBalance(),
+                                )
                               : Padding(
                                   padding: const EdgeInsets.all(8.0),
                                   child: Column(
@@ -1460,7 +1547,7 @@ _buildTextField(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.center,
                                         children: [
-                                          Container(
+                                          SizedBox(
                                             height: 50,
                                             width: 250,
                                             child:
@@ -1473,14 +1560,16 @@ _buildTextField(
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                                 fillColor: Colors.transparent,
-                                                enabledBorder: OutlineInputBorder(
+                                                enabledBorder:
+                                                    OutlineInputBorder(
                                                   borderSide: BorderSide(
                                                       color:
                                                           Colors.teal.shade700),
                                                   borderRadius:
                                                       BorderRadius.circular(12),
                                                 ),
-                                                focusedBorder: OutlineInputBorder(
+                                                focusedBorder:
+                                                    OutlineInputBorder(
                                                   borderSide: BorderSide(
                                                       color:
                                                           Colors.teal.shade900),
@@ -1494,18 +1583,18 @@ _buildTextField(
                                                   child: Text(
                                                     category,
                                                     style: TextStyle(
-                                                        color:
-                                                            Colors.teal.shade900),
+                                                        color: Colors
+                                                            .teal.shade900),
                                                   ),
                                                 );
                                               }).toList(),
                                               onChanged: (value) {
                                                 setState(() {
                                                   selectedbank = value;
-                                                
                                                 });
                                               },
-                                              validator: (value) => value == null
+                                              validator: (value) => value ==
+                                                      null
                                                   ? 'Please select a category'
                                                   : null,
                                             ),
@@ -1519,61 +1608,102 @@ _buildTextField(
                                             onPressed: () => addbanke(context),
                                             tooltip: 'Add New bank',
                                           ),
-                                          
-                                          
                                         ],
                                       ),
-                                       TextField(
-  controller: amountpaid,
-  keyboardType: TextInputType.numberWithOptions(decimal: true),
-  inputFormatters: [
-    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-  ],
-  decoration: InputDecoration(
-    labelText: 'Amount Paid',
-    border: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.teal.shade800, // You can also set the color of the border
-      ),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.teal.shade800, // You can also set the color of the border
-      ),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
-      ),
-    ),
-  ),
-  onChanged: (_) => _updateBalance(),
-)
+                                      TextField(
+                                        controller: amountpaid,
+                                        keyboardType:
+                                            TextInputType.numberWithOptions(
+                                                decimal: true),
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter.allow(
+                                              RegExp(r'^\d+\.?\d{0,2}')),
+                                        ],
+                                        decoration: InputDecoration(
+                                          labelText: 'Amount Paid',
+                                          border: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                              width:
+                                                  2.0, // Adjust the width to make the border bold
+                                              color: Colors.teal
+                                                  .shade800, // You can also set the color of the border
+                                            ),
+                                          ),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                              width:
+                                                  2.0, // Adjust the width to make the border bold
+                                              color: Colors.teal
+                                                  .shade800, // You can also set the color of the border
+                                            ),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                              width:
+                                                  2.0, // Adjust the width to make the border bold
+                                              color: Colors
+                                                  .black, // You can also set the color of the border
+                                            ),
+                                          ),
+                                        ),
+                                        onChanged: (_) => updateBalance(),
+                                      )
                                     ],
                                   ),
                                 ),
-                                
-
-                          Text(
-                            'Total: ${TotalAmount % 1 == 0 ? TotalAmount.toInt().toString() : TotalAmount.toStringAsFixed(2)}',
-                            style: const TextStyle(
+                        TextFormField(
+                            controller: TotalAmount,
+                            
+                            keyboardType: TextInputType.number,
+                            
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            
+                            decoration: InputDecoration(
+                              labelText: 'Total',
+                                labelStyle:  TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.bold),
+                              border: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  width:
+                                      2.0, // Adjust the width to make the border bold
+                                  color: Colors
+                                      .black, // You can also set the color of the border
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  width:
+                                      2.0, // Adjust the width to make the border bold
+                                  color: Colors
+                                      .transparent, // You can also set the color of the border
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  width:
+                                      2.0, // Adjust the width to make the border bold
+                                  color: Colors
+                                      .transparent, // You can also set the color of the border
+                                ),
+                              ),
+                            ),
+                            validator: (value) {
+                              return null;
+                            },
                           ),
-                          if (_errorMessage ==
-                              "bigto")
+                         
+                          if (errorMessage == "bigto")
                             Text(
                               'you Amount paind is greater than Balance',
                               style: const TextStyle(
                                   color: Colors.red,
                                   fontWeight: FontWeight.bold),
                             ),
-                          if (_errorMessage ==
-                              "null")
+                          if (errorMessage == "null")
                             Text(
-                              'Balance: ${_balanceAmount % 1 == 0 ? _balanceAmount.toInt().toString() : _balanceAmount.toStringAsFixed(2)}',
+                              'Balance: ${balanceAmount % 1 == 0 ? balanceAmount.toInt().toString() : balanceAmount.toStringAsFixed(2)}',
                               style: const TextStyle(
                                   fontSize: 18, fontWeight: FontWeight.bold),
                             ),
@@ -1585,18 +1715,18 @@ _buildTextField(
                                 Container(
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(
-                                      colors: [
-                                        Colors.blue,
-                                        Colors.green
-                                      ],
+                                      colors: const [Colors.blue, Colors.green],
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
                                     ),
-                                    borderRadius: BorderRadius.circular(
-                                        8),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: ElevatedButton(
-                                    onPressed: _clearForm,
+                                    onPressed: clearForm,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                    ),
                                     child: Text(
                                       'Clear',
                                       style: TextStyle(
@@ -1605,32 +1735,27 @@ _buildTextField(
                                         fontSize: 16,
                                       ),
                                     ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors
-                                          .transparent,
-                                      shadowColor: Colors
-                                          .transparent,
-                                    ),
                                   ),
                                 ),
-                                SizedBox(
-                                    width:
-                                        10),
+                                SizedBox(width: 10),
                                 Container(
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(
-                                      colors: [
+                                      colors: const [
                                         Colors.purple,
                                         Colors.orange
                                       ],
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
                                     ),
-                                    borderRadius: BorderRadius.circular(
-                                        8),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: ElevatedButton(
-                                    onPressed: _generateReceipt,
+                                    onPressed: generateReceipt,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                    ),
                                     child: Text(
                                       'Save & Print',
                                       style: TextStyle(
@@ -1638,12 +1763,6 @@ _buildTextField(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
                                       ),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors
-                                          .transparent,
-                                      shadowColor: Colors
-                                          .transparent,
                                     ),
                                   ),
                                 ),
@@ -1656,9 +1775,8 @@ _buildTextField(
                   ],
                 ),
                 SizedBox(height: 20),
-                 Container(height: 180,
-                 width: 500,
-                 child: _buildItemDetailsList()),
+                SizedBox(
+                    height: 180, width: 500, child: buildItemDetailsList()),
               ],
             ),
           ),
@@ -1674,31 +1792,30 @@ _buildTextField(
     ValueChanged<String>? onChanged,
   }) {
     return TextField(
-  controller: controller,
-  decoration: InputDecoration(
-    labelText: labelText,
-    border: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: labelText,
+        border: OutlineInputBorder(
+          borderSide: BorderSide(
+            width: 2.0, // Adjust the width to make the border bold
+            color: Colors.black, // You can also set the color of the border
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(
+            width: 2.0, // Adjust the width to make the border bold
+            color: Colors.black, // You can also set the color of the border
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(
+            width: 2.0, // Adjust the width to make the border bold
+            color: Colors.black, // You can also set the color of the border
+          ),
+        ),
       ),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
-      ),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderSide: BorderSide(
-        width: 2.0, // Adjust the width to make the border bold
-        color: Colors.black, // You can also set the color of the border
-      ),
-    ),
-  ),
-  keyboardType: keyboardType,
-  onChanged: onChanged,
-);
-
+      keyboardType: keyboardType,
+      onChanged: onChanged,
+    );
   }
 }

@@ -49,7 +49,7 @@ class LoginPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 15),
-            Container(
+            SizedBox(
               width: 500,
               child: TextFormField(
                 controller: emailController,
@@ -70,7 +70,7 @@ class LoginPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            Container(
+            SizedBox(
               width: 500,
               child: TextFormField(
                 controller: passwordController,
