@@ -16,10 +16,10 @@ class Expances extends StatefulWidget {
 
 class _ExpancesState extends State<Expances> {
   String external = '';
-  late Box<dynamic> _dailyupdataBox;
-  List<Map<dynamic, dynamic>> _allRecords = [];
-  List<Map<dynamic, dynamic>> _filteredRecords = [];
-  final ScrollController _horizontalScrollController = ScrollController();
+  late Box<dynamic> dailyupdataBox;
+  List<Map<dynamic, dynamic>> allRecords = [];
+  List<Map<dynamic, dynamic>> filteredRecords = [];
+  final ScrollController horizontalScrollController = ScrollController();
   String formattedTotalExpenses = '';
   double finalexpance = 0.0;
   double totalbyhand=0.0;
@@ -29,24 +29,24 @@ class _ExpancesState extends State<Expances> {
     super.initState();
     external = widget.expanc;
     totalbyhand=widget.totalByHand;
-    _initializeBox();
+    initializeBox();
   }
 @override
 void dispose() {
-  _horizontalScrollController.dispose();
+  horizontalScrollController.dispose();
   super.dispose();
 }
 
-  Future<void> _initializeBox() async {
-    _dailyupdataBox = await Hive.openBox('expance');
-    _loadRecords();
+  Future<void> initializeBox() async {
+    dailyupdataBox = await Hive.openBox('expance');
+    loadRecords();
   }
 
-  void _loadRecords() {
+  void loadRecords() {
     setState(() {
-      _allRecords = _dailyupdataBox.values.cast<Map>().toList();
-      _filteredRecords = List.from(_allRecords.reversed);
-      _calculateTotalExpenses();
+      allRecords = dailyupdataBox.values.cast<Map>().toList();
+      filteredRecords = List.from(allRecords.reversed);
+      calculateTotalExpenses();
     });
   }
   Future<pw.Image> buildImage() async {
@@ -72,9 +72,9 @@ void dispose() {
   }
 
 
-  void _calculateTotalExpenses() {
+  void calculateTotalExpenses() {
     double totalExpenses = 0.0;
-    for (var record in _allRecords) {
+    for (var record in allRecords) {
       totalExpenses += double.tryParse(record['AmountExpense']?.toString() ?? '0.0') ?? 0.0;
     }
     formattedTotalExpenses = totalExpenses.toStringAsFixed(totalExpenses.truncate() == totalExpenses ? 0 : 2);
@@ -240,8 +240,8 @@ void dispose() {
                   'date': date,
                 };
 
-                await _dailyupdataBox.add(newRecord);
-                _loadRecords();
+                await dailyupdataBox.add(newRecord);
+                loadRecords();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
@@ -266,7 +266,7 @@ void dispose() {
       },
     );
   }
-  void _deleteExpense(Map<dynamic, dynamic> record)  {
+  void deleteExpense(Map<dynamic, dynamic> record)  {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -283,14 +283,14 @@ void dispose() {
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
-                final key = _dailyupdataBox.keys.firstWhere(
-                  (k) => _dailyupdataBox.get(k) == record,
+                final key = dailyupdataBox.keys.firstWhere(
+                  (k) => dailyupdataBox.get(k) == record,
                   orElse: () => null,
                 );
 
                 if (key != null) {
-                  await _dailyupdataBox.delete(key);
-                  _loadRecords();
+                  await dailyupdataBox.delete(key);
+                  loadRecords();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Record deleted successfully')),
                   );
@@ -390,7 +390,7 @@ void dispose() {
 
 
 
-  void _editExpense(Map<dynamic, dynamic> record) async {
+  void editExpense(Map<dynamic, dynamic> record) async {
     final TextEditingController expenseController = TextEditingController();
     expenseController.text = record['AmountExpense']?.toString() ?? '';
     final TextEditingController expenseForController = TextEditingController();
@@ -526,8 +526,8 @@ void dispose() {
               onPressed: () async {
                 Navigator.of(context).pop();
 
-                final key = _dailyupdataBox.keys.firstWhere(
-                  (k) => _dailyupdataBox.get(k) == record,
+                final key = dailyupdataBox.keys.firstWhere(
+                  (k) => dailyupdataBox.get(k) == record,
                   orElse: () => null,
                 );
 
@@ -538,8 +538,8 @@ void dispose() {
                   record['AmountExpense'] = newExpense;
                   record['Expense_for'] =newExpenseFor ;
                     record['date'] = date;
-                  await _dailyupdataBox.put(key, record);
-                  _loadRecords();
+                  await dailyupdataBox.put(key, record);
+                  loadRecords();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
@@ -607,6 +607,7 @@ Widget build(BuildContext context) {
                 color: Colors.white,
                 size: 30.0,
               ),
+              
               onPressed: addExpense,
                tooltip: "Add", 
               splashRadius: 24.0,
@@ -617,8 +618,9 @@ Widget build(BuildContext context) {
                 color: Colors.white,
                 size: 30.0,
               ),
-              onPressed: () => generatePdf(_filteredRecords, finalexpance, total),
-               tooltip: "print Expenses", 
+               tooltip: "print ", 
+              onPressed: () => generatePdf(filteredRecords, finalexpance, total),
+               
               splashRadius: 24.0,
             ),
           ],
@@ -689,17 +691,17 @@ Widget build(BuildContext context) {
                   ),
                   child: Scrollbar(
                     thumbVisibility: true,
-                    controller: _horizontalScrollController,
+                    controller: horizontalScrollController,
                     child: ListView.builder(
-                      controller: _horizontalScrollController, // Attach the controller here
-                      itemCount: _filteredRecords.length,
+                      controller: horizontalScrollController, // Attach the controller here
+                      itemCount: filteredRecords.length,
                       itemBuilder: (context, index) {
-                        final record = _filteredRecords[index];
+                        final record = filteredRecords[index];
                         return Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: ListTile(
                             title: Text(
-                              record.entries.map((e) => '${e.key}: ${e.value ?? 'No Data'}').join(', '),
+                              record.entries.map((e) => '${e.key}: ${e.value ?? 'No Data'}').join(',  '),
                               style: TextStyle(
                                 color: Colors.black,
                                 fontWeight: FontWeight.bold,
@@ -710,11 +712,13 @@ Widget build(BuildContext context) {
                               children: [
                                 IconButton(
                                   icon: Icon(Icons.edit, color: Colors.blue),
-                                  onPressed: () => _editExpense(record),
+                                   tooltip: "Edit", 
+                                  onPressed: () => editExpense(record),
                                 ),
                                 IconButton(
                                   icon: Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () => _deleteExpense(record),
+                                   tooltip: "Delete", 
+                                  onPressed: () => deleteExpense(record),
                                 ),
                               ],
                             ),

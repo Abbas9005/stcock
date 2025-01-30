@@ -158,14 +158,14 @@ class _ReportistockState extends State<Reportistock> {
               children: [
                 pw.TableRow(
                   children: [
-                    pw.Text(' Totalstock'),
+                    pw.Text(' Totalstock',style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     // pw.Text('Remaining stock'),
-                    pw.Text('Quantity'),
-                    pw.Text('Unit Price'),
-                    pw.Text('Total'),
-                    pw.Text('Date'),
-                    pw.Text('Invoice'),
-                    pw.Text(' Customer'),
+                    pw.Text('Quantity',style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text('Unit Price',style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text('Total',style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text('Date',style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text('Invoice',style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text(' Customer',style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                   ],
                 ),
                 pw.TableRow(
@@ -187,11 +187,7 @@ class _ReportistockState extends State<Reportistock> {
                   final totalof = item['quantity'] * item['unitPrice'];
                   final  customerName=record['customerName'];
 
-                  print('Record: $record'); // Debug print
-                  print('Item: $item'); // Debug print
-                  print('Quantity: $quantity'); // Debug print
-                  print('Remaining Quantity: $Remainingquantity'); // Debug print
-                  print('Totalof: $totalof'); // Debug print
+                // Debug print
 
                   return pw.TableRow(
                     children: [

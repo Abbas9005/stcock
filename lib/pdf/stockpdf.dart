@@ -169,19 +169,20 @@ class _stockpdfState extends State<stockpdf> {
               border: pw.TableBorder.all(),
               children: [
                 pw.TableRow(
-                  decoration: pw.BoxDecoration(color: PdfColors.grey200),
+                
                   children: [
-                    pw.Text('',
+                    pw.Text('_   ',
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    pw.Text('Total',
+                    pw.Text('Total    ',
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    pw.Text('',
+                   
+                           pw.Text('_       ',
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     pw.Text('$totalStock',
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     pw.Text('$totalQuantity',
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    pw.Text('',
+                    pw.Text('_       ',
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                   ],
                 ),

@@ -19,16 +19,18 @@ class _StockReportState extends State<StockReport> {
   int? tappedIndex; // State variable to keep track of the tapped cell index
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
-    
+    int i=0;
   @override
   void initState() {
+     i=0;
     super.initState();
     stockBox = Hive.box('stock');
+   
   }
  
 
   // Function to handle deletion of a stock item with confirmation
-  void _deleteStockItem(int index) {
+  void deleteStockItem(int index) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -106,168 +108,189 @@ class _StockReportState extends State<StockReport> {
       },
     );
   }
+void editStockItem(int index) {
+  final item = stockBox?.getAt(index);
 
-  void _editStockItem(int index) {
-    final item = stockBox?.getAt(index);
+  if (item != null) {
+    TextEditingController nameController =
+        TextEditingController(text: item['itemName']);
+    TextEditingController namecatogory =
+        TextEditingController(text: item['category']);
+    TextEditingController priceController =
+        TextEditingController(text: item['unitPrice'].toString());
+    TextEditingController quantityController =
+        TextEditingController();
+    TextEditingController dateController =
+        TextEditingController(text: item['dateAdded']);
 
-    if (item != null) {
-      TextEditingController nameController =
-          TextEditingController(text: item['itemName']);
-      TextEditingController namecatogory =
-          TextEditingController(text: item['category']);
-      TextEditingController priceController =
-          TextEditingController(text: item['unitPrice'].toString());
-      TextEditingController quantityController =
-          TextEditingController(text: item['quantity'].toString());
-      TextEditingController dateController =
-          TextEditingController(text: item['dateAdded']);
-final quantatecurinte= item['quantity'];
-final stocktotal= item['total'];
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20), // Rounded corners
+    final quantatecurinte = item['quantity'];
+    final stocktotal = item['total'];
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20), // Rounded corners
+          ),
+          title: Center(
+            child: Text(
+              'Edit Item',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 24,
+                color: Colors.purple,
+              ),
             ),
-            title: Center(
-              child: Text(
-                'Edit Item',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 24,
-                  color: Colors.purple,
+          ),
+          content: Container(
+            height: 300, // Adjusted height for better spacing
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: const [Colors.blueAccent, Colors.lightBlue, Colors.purpleAccent],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Item Name',
+                    labelStyle: TextStyle(color: Colors.white),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.2),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  style: TextStyle(color: Colors.white),
                 ),
-              ),
-            ),
-            content: Container(
-              height: 300, // Adjusted height for better spacing
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: const [Colors.blueAccent, Colors.lightBlue, Colors.purpleAccent],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                SizedBox(height: 10),
+                TextField(
+                  controller: priceController,
+                  decoration: InputDecoration(
+                    labelText: 'Unit Price',
+                    labelStyle: TextStyle(color: Colors.white),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.2),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  keyboardType: TextInputType.number,
+                  style: TextStyle(color: Colors.white),
                 ),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextField(
-                    controller: nameController,
-                    decoration: InputDecoration(
-                      labelText: 'Item Name',
-                      labelStyle: TextStyle(color: Colors.white),
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.2),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        borderSide: BorderSide.none,
-                      ),
+                SizedBox(height: 10),
+                TextField(
+                  controller: quantityController,
+                  decoration: InputDecoration(
+                    labelText: 'Quantity',
+                    labelStyle: TextStyle(color: Colors.white),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.2),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide.none,
                     ),
-                    style: TextStyle(color: Colors.white),
                   ),
-                  SizedBox(height: 10),
-                  TextField(
-                    controller: priceController,
-                    decoration: InputDecoration(
-                      labelText: 'Unit Price',
-                      labelStyle: TextStyle(color: Colors.white),
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.2),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        borderSide: BorderSide.none,
-                      ),
+                  keyboardType: TextInputType.number,
+                  style: TextStyle(color: Colors.white),
+                ),
+                SizedBox(height: 10),
+                TextField(
+                  controller: dateController,
+                  decoration: InputDecoration(
+                    labelText: 'Date Added',
+                    labelStyle: TextStyle(color: Colors.white),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.2),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide.none,
                     ),
-                    keyboardType: TextInputType.number,
-                    style: TextStyle(color: Colors.white),
                   ),
-                  SizedBox(height: 10),
-                  TextField(
-                    controller: quantityController,
-                    decoration: InputDecoration(
-                      labelText: 'Quantity',
-                      labelStyle: TextStyle(color: Colors.white),
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.2),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                    keyboardType: TextInputType.number,
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  SizedBox(height: 10),
-                  TextField(
-                    controller: dateController,
-                    decoration: InputDecoration(
-                      labelText: 'Date Added',
-                      labelStyle: TextStyle(color: Colors.white),
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.2),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ],
-              ),
+                  style: TextStyle(color: Colors.white),
+                ),
+              ],
             ),
-            actions: [
-              TextButton(
-                onPressed: () {
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                final quantity = quantityController.text;
+                final quantate = double.tryParse(quantity) ?? 0.0;
 
-                  final quantity=quantityController.text;
-                       final quantate=  double.tryParse(quantity) ?? 0.0;
-                       final totalQuantity=quantate-quantatecurinte;
+                double quantatecurinteNum;
+                if (quantatecurinte is String) {
+                  quantatecurinteNum = double.parse(quantatecurinte);
+                } else if (quantatecurinte is int) {
+                  quantatecurinteNum = quantatecurinte.toDouble();
+                } else if (quantatecurinte is double) {
+                  quantatecurinteNum = quantatecurinte;
+                } else {
+                  throw Exception('Invalid type for quantatecurinte');
+                }
 
-                        double total=stocktotal+totalQuantity;
-                  setState(() {
+                double stocktotalNum;
+                if (stocktotal is String) {
+                  stocktotalNum = double.parse(stocktotal);
+                } else if (stocktotal is int) {
+                  stocktotalNum = stocktotal.toDouble();
+                } else if (stocktotal is double) {
+                  stocktotalNum = stocktotal;
+                } else {
+                  throw Exception('Invalid type for stocktotal');
+                }
 
-                    stockBox?.putAt(index, {
-                      'itemName': nameController.text,
-                      'category': namecatogory.text,
-                      'unitPrice': double.tryParse(priceController.text) ?? 0.0,
-                      'quantity': int.tryParse(quantityController.text) ?? 0,
-                      'dateAdded': dateController.text,
-                       'total': total,
-                    });
+                final totalQuantity = quantate + quantatecurinteNum;
+                print('Total Quantity: $totalQuantity');
+
+                final total = stocktotalNum + quantate;
+                setState(() {
+                  stockBox?.putAt(index, {
+                    'itemName': nameController.text,
+                    'category': namecatogory.text,
+                    'unitPrice': double.tryParse(priceController.text) ?? 0.0,
+                    'quantity': totalQuantity,
+                    'dateAdded': dateController.text,
+                    'total': total,
                   });
-                  Navigator.of(context).pop();
-                },
-                child: Text(
-                  'Save',
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.bold,
-                  ),
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                'Save',
+                style: TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(
-                    color: Colors.red,
-                    fontWeight: FontWeight.bold,
-                  ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ],
-          );
-        },
-      );
-    }
+            ),
+          ],
+        );
+      },
+    );
   }
-
-
+}
 
 
   @override
@@ -389,6 +412,7 @@ final stocktotal= item['total'];
                       .toLowerCase()
                       .contains(searchQuery))
                   .toList();
+                  i=0;
 
               return  SizedBox(
                 height: 700,
@@ -420,165 +444,191 @@ final stocktotal= item['total'];
                                   child: SingleChildScrollView(
                                     scrollDirection: Axis.vertical,
                                     controller: _verticalScrollController,
-                                    child: DataTable(
-                                columns: const [
-                                  DataColumn(
-                                    label: Text(
-                                      'Item Name',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: DataTable(
+                                                                      columns: const [
+                                                                                    DataColumn(
+                                      label: Text(
+                                        'No',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
+                                        ),
+                                        textAlign: TextAlign.center,
                                       ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                  DataColumn(
-                                    label: Text(
-                                      'Unit Price',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
+                                                                        ),
+                                                                        DataColumn(
+                                      label: Text(
+                                        'Item Name',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
+                                        ),
+                                        textAlign: TextAlign.center,
                                       ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                  DataColumn(
-                                    label: Text(
-                                      'Total',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
+                                                                        ),
+                                                                        DataColumn(
+                                      label: Text(
+                                        'Unit Price',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
+                                        ),
+                                        textAlign: TextAlign.center,
                                       ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                  DataColumn(
-                                    label: Text(
-                                      'Quantity',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
+                                                                        ),
+                                                                        DataColumn(
+                                      label: Text(
+                                        'Total',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
+                                        ),
+                                        textAlign: TextAlign.center,
                                       ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                  DataColumn(
-                                    label: Text(
-                                      'Date',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
+                                                                        ),
+                                                                        DataColumn(
+                                      label: Text(
+                                        'Quantity',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
+                                        ),
+                                        textAlign: TextAlign.center,
                                       ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                  DataColumn(
-                                    label: Text(
-                                      'Actions',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
+                                                                        ),
+                                                                        DataColumn(
+                                      label: Text(
+                                        'Date',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
+                                        ),
+                                        textAlign: TextAlign.center,
                                       ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ],
-                                rows: stockData.asMap().map<int, DataRow>((index, item) {
-                                  final itemName = item['itemName'] ?? 'Unnamed';
-                                  final category = item['category'] ?? 'Uncategory';
-                                  final unitPrice = item['unitPrice'] ?? 0.0;
-                                  final quantity = item['quantity'] ?? 0;
-                                  final dateAdded = item['dateAdded'] ?? 'Unknown Date';
-                                  final Total = item['total'] ?? 0;
-                                  return MapEntry(
-                                    index,
-                                    DataRow(
-                                      color: WidgetStateProperty.resolveWith<Color>(
-                                        (Set<WidgetState> states) {
-                                          if (tappedIndex == index) {
-                                            return Colors.yellow.withOpacity(0.5); // Change background color when tapped
-                                          }
-                                          return Colors.transparent; // Default background color
-                                        },
+                                                                        ),
+                                                                        DataColumn(
+                                      label: Text(
+                                        'Actions',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
+                                        ),
+                                        textAlign: TextAlign.center,
                                       ),
-                                      cells: [
-                                        DataCell(
-                                          GestureDetector(
-                                            onTap: () {
-                                              setState(() {
-                                                tappedIndex = index; // Update the tapped index
-                                              });
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) => istakfordescrption(
-                                                    itemName: itemName,
-                                                    total: Total,
-                                                    dateAdded: dateAdded,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                            child: Center(
+                                                                        ),
+                                                                      ],
+                                                                      
+                                                                      rows: stockData.asMap().map<int, DataRow>((index, item) {
+                                                                        final itemName = item['itemName'] ?? 'Unnamed';
+                                                                        final category = item['category'] ?? 'Uncategory';
+                                                                        final unitPrice = item['unitPrice'] ?? 0.0;
+                                                                        final quantity = item['quantity'] ?? 0;
+                                                                        final dateAdded = item['dateAdded'] ?? 'Unknown Date';
+                                                                        final Total = item['total'] ?? 0;
+                                                                     i++;
+                                                                        return MapEntry(
+                                      index,
+                                      DataRow(
+                                        color: WidgetStateProperty.resolveWith<Color>(
+                                          (Set<WidgetState> states) {
+                                            if (tappedIndex == index) {
+   i++;
+                                              return Colors.yellow.withOpacity(0.5); // Change background color when tapped
+                                            }
+                                            return Colors.transparent; // Default background color
+                                          },
+                                        ),
+                                        cells: [
+                                          DataCell(
+                                            Center(
                                               child: Text(
-                                                itemName,
-                                                style: TextStyle(fontWeight: FontWeight.bold,    color: Colors.black,),
+                                                '$i',
+                                                style: TextStyle(fontWeight: FontWeight.bold),
                                               ),
                                             ),
                                           ),
-                                        ),
-                                        DataCell(
-                                          Center(
-                                            child: Text(
-                                              'Rs: ${unitPrice.toStringAsFixed(2)}',
-                                              style: TextStyle(fontWeight: FontWeight.bold),
-                                            ),
-                                          ),
-                                        ),
-                                        DataCell(
-                                          Center(
-                                            child: Text(
-                                              Total.toString(),
-                                              style: TextStyle(fontWeight: FontWeight.bold),
-                                            ),
-                                          ),
-                                        ),
-                                        DataCell(
-                                          Center(
-                                            child: Text(
-                                              quantity.toString(),
-                                              style: TextStyle(fontWeight: FontWeight.bold),
-                                            ),
-                                          ),
-                                        ),
-                                        DataCell(
-                                          Center(
-                                            child: Text(
-                                              dateAdded,
-                                              style: TextStyle(fontWeight: FontWeight.bold),
-                                            ),
-                                          ),
-                                        ),
-                                        DataCell(
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              IconButton(
-                                                icon: Icon(Icons.edit, color: Colors.black),
-                                                onPressed: () => _editStockItem(index),
+                                          DataCell(
+                                            GestureDetector(
+                                              onTap: () {
+                                                setState(() {
+                                                  tappedIndex = index; // Update the tapped index
+                                                });
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) => istakfordescrption(
+                                                      itemName: itemName,
+                                                      total: Total,
+                                                      dateAdded: dateAdded,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                              child: Center(
+                                                child: Text(
+                                                  itemName,
+                                                  style: TextStyle(fontWeight: FontWeight.bold,    color: Colors.black,),
+                                                ),
                                               ),
-                                              IconButton(
-                                                icon: Icon(Icons.delete, color: Colors.red),
-                                                onPressed: () => _deleteStockItem(index),
-                                              ),
-                                            ],
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                          DataCell(
+                                            Center(
+                                              child: Text(
+                                                'Rs: ${unitPrice.toStringAsFixed(2)}',
+                                                style: TextStyle(fontWeight: FontWeight.bold),
+                                              ),
+                                            ),
+                                          ),
+                                          DataCell(
+                                            Center(
+                                              child: Text(
+                                                Total.toString(),
+                                                style: TextStyle(fontWeight: FontWeight.bold),
+                                              ),
+                                            ),
+                                          ),
+                                          DataCell(
+                                            Center(
+                                              child: Text(
+                                                quantity.toString(),
+                                                style: TextStyle(fontWeight: FontWeight.bold),
+                                              ),
+                                            ),
+                                          ),
+                                          DataCell(
+                                            Center(
+                                              child: Text(
+                                                dateAdded,
+                                                style: TextStyle(fontWeight: FontWeight.bold),
+                                              ),
+                                            ),
+                                          ),
+                                          DataCell(
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                IconButton(
+                                                  icon: Icon(Icons.edit, color: Colors.black),
+                                                  tooltip: "edit",
+                                                  onPressed: () => editStockItem(index),
+                                                ),
+                                                IconButton(
+                                                  icon: Icon(Icons.delete, color: Colors.red),
+                                                  tooltip: "delete",
+                                                  onPressed: () => deleteStockItem(index),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                                                        );
+                                                                      }).values.toList(),
+                                                                    ),
                                     ),
-                                  );
-                                }).values.toList(),
-                              ),
                             ),
                           ),
                         ),

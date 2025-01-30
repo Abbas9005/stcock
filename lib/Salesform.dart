@@ -5,12 +5,10 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SalesFormScreen extends StatefulWidget {
   const SalesFormScreen({super.key});
-
   @override
   SalesFormScreenState createState() => SalesFormScreenState();
 }
@@ -20,46 +18,49 @@ class SalesFormScreenState extends State<SalesFormScreen> {
   final TextEditingController customername = TextEditingController();
   final TextEditingController bankname = TextEditingController();
   final TextEditingController contect = TextEditingController();
-  final TextEditingController amountpaid = TextEditingController();
+  final TextEditingController amountpaidbyhand = TextEditingController();
+  final TextEditingController amountpaidbybank = TextEditingController();
   final TextEditingController amountexpanses = TextEditingController();
   final TextEditingController squantite = TextEditingController();
   final TextEditingController uniteprice = TextEditingController();
+  final TextEditingController customExpenseController = TextEditingController();
   TextEditingController invoiceNumberController = TextEditingController();
   TextEditingController kataNumberController = TextEditingController();
-   TextEditingController TotalAmount = TextEditingController();
+  TextEditingController TotalAmount = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final Map<String, int> _itemQuantities = {};
-  Map<String, List<Map<String, dynamic>>> _stockData = {};
   final Map<String, double> itQuantities = {};
+  Map<String, List<Map<String, dynamic>>> _stockData = {};
+  final List<String> expenseItems = ['Rent', 'Food', 'Utilities', 'Other'];
+  var stockBox = Hive.box('stock');
   List<String> items = [];
+  int currentInvoiceNumber = 0;
+  List<Map<String, dynamic>> itemDetailsList = [];
+  DateTime date = DateTime.now();
   String? selecteitem;
   String? sitem;
-  double unitPriceAmount = 0.0;
-  double balanceAmount = 0.0;
-  double stockquantity = 0.0;
-  double textfiledunitprince = 0.0;
-
-  String countectnumber = '';
-  String name = '';
-  String? selectedExpense;
-  bool isHandSelected = false;
   String errorMessage = '';
   String errorquentity = '';
   String? iteamname = '';
   String? cname = '';
-  final List<String> expenseItems = ['Rent', 'Food', 'Utilities', 'Other'];
-  final TextEditingController customExpenseController =
-      TextEditingController();
-  var stockBox = Hive.box('stock');
-  String? selectedItem;
-  double enterquentity = 0.0;
-  String? add = '';
-  int currentInvoiceNumber = 0;
-  List<Map<String, dynamic>> itemDetailsList = [];
+
+  String name = '';
+  String? selectedExpense;
   String totalAmount = '';
   String dateController = '';
-  DateTime date = DateTime.now();
-  double showquantity=0.0;
+  String? selectedItem;
+  String? add = '';
+  bool HandSelected = true;
+  bool bankSelected = false;
+  bool isCashSelected = true;
+  double showquantity = 0.0;
+  double balance = 0.0;
+  double enterquentity = 0.0;
+  double unitPriceAmount = 0.0;
+  double balanceamounte = 0.0;
+  double stockquantity = 0.0;
+  double textfiledunitprince = 0.0;
+  double payminte = 0.0;
 
   @override
   void initState() {
@@ -93,13 +94,13 @@ class SalesFormScreenState extends State<SalesFormScreen> {
     setState(() {
       customername.clear();
       contect.clear();
-      amountpaid.clear();
+      amountpaidbyhand.clear();
       _itemQuantities.clear();
       selecteitem = null;
       sitem = null;
       selectedExpense = null;
       unitPriceAmount = 0.0;
-      balanceAmount = 0.0;
+      balanceamounte = 0.0;
       TotalAmount.clear();
       errorMessage = '';
       errorquentity = '';
@@ -323,26 +324,27 @@ class SalesFormScreenState extends State<SalesFormScreen> {
     String formattedDate =
         '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
-    double balanceAmount = double.tryParse(squantite.text.trim()) ?? 0.0;
-    double buy = balanceAmount * textfiledunitprince;
+    double balanceamounte = double.tryParse(squantite.text.trim()) ?? 0.0;
+    double buy = balanceamounte * textfiledunitprince;
 
     setState(() {
-      if (balanceAmount > quantity) {
+      if (balanceamounte > quantity) {
         setState(() {
-            showquantity=quantity;
+          showquantity = quantity;
         });
-      
+
         errorquentity = 'null'; // Assign null (if it's expected to hold null)
       } else {
         errorquentity = ''; // Assign an empty string
-        quantity = quantity - balanceAmount; // Update quantity
+        quantity = quantity - balanceamounte; // Update quantity
 
         itemDetailsList.add({
           'itemName': itemName,
           'category': category,
-          'quantity': balanceAmount,
+          'quantity': balanceamounte,
           'unitPrice': textfiledunitprince,
           'total': total,
+          'Remaining': quantity
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -483,9 +485,9 @@ class SalesFormScreenState extends State<SalesFormScreen> {
           return sum + (entry.value * unitPrice);
         },
       );
-      final amountPaid = double.tryParse(amountpaid.text) ?? 0.0;
-      balanceAmount = unitPriceAmount - amountPaid;
-      if (balanceAmount < 0) balanceAmount = 0;
+      final amountPaid = double.tryParse(amountpaidbyhand.text) ?? 0.0;
+      balanceamounte = unitPriceAmount - amountPaid;
+      if (balanceamounte < 0) balanceamounte = 0;
     });
   }
 
@@ -526,22 +528,27 @@ class SalesFormScreenState extends State<SalesFormScreen> {
     );
   }
 
-void updateBalance() {
-  final amountPaid = double.tryParse(amountpaid.text) ?? 0.0;
-  final totalAmount = calculateTotalAmount();
+  void updateBalance() {
+    final amountPaid = double.tryParse(amountpaidbyhand.text) ?? 0.0;
+    final amountpaidbank = double.tryParse(amountpaidbybank.text) ?? 0.0;
+    final totalhandbank = amountPaid + amountpaidbank;
+    payminte = totalhandbank;
+    final totalAmount = calculateTotalAmount();
 
-  setState(() {
-    if (amountPaid > totalAmount) {
-      errorMessage = "bigto"; // Assuming "bigto" is the error message for this case
-      balanceAmount = totalAmount - amountPaid; // Reset balance
-    } else {
-      errorMessage = "null";
-      balanceAmount = totalAmount - amountPaid;
-    }
-    TotalAmount.text = totalAmount.toStringAsFixed(2);
-  });
-}
-
+    setState(() {
+      if (totalhandbank > totalAmount) {
+        errorMessage =
+            "bigto"; // Assuming "bigto" is the error message for this case
+        balanceamounte = totalAmount - totalhandbank - balance; // Reset balance
+       
+      } else {
+        errorMessage = "null";
+        balanceamounte = totalAmount - totalhandbank - balance;
+      
+      }
+      TotalAmount.text = totalAmount.toStringAsFixed(2);
+    });
+  }
 
   void showMultiSelectItemDialog() {
     if (selectedItem == null) return;
@@ -767,7 +774,7 @@ void updateBalance() {
 
   Future<void> generateReceipt() async {
     final customer = customername.text;
-    final Total =TotalAmount.text;
+    final Total = TotalAmount.text;
     final data = dateAddedController.text.trim();
     final contactInfo = contect.text.trim();
     final unitPrice = double.tryParse(uniteprice.text) ?? 0.0;
@@ -859,7 +866,7 @@ void updateBalance() {
                     ],
                   ),
                   pw.Row(children: [
-                    pw.Text("CustomerNumber: $countectnumber",
+                    pw.Text("CustomerNumber: $contactInfo",
                         style: pw.TextStyle(fontSize: 12)),
                   ]),
                   pw.SizedBox(height: 10),
@@ -940,19 +947,54 @@ void updateBalance() {
                     ],
                   ),
                   pw.SizedBox(height: 10),
-                  pw.Text(
-                    isHandSelected
-                        ? 'Payment Method: by Hand'
-                        : 'Payment Method: by Bank',
-                    style: pw.TextStyle(
-                      fontSize: 10,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
+                  pw.Column(
+  crossAxisAlignment: pw.CrossAxisAlignment.start,
+  children: [
+    pw.Text(
+      isCashSelected 
+          ? 'Payment Method: by Hand'
+          : bankSelected 
+              ? 'Payment Method: Both (Hand & Bank)'
+              : 'Payment Method: by Bank',
+      style: pw.TextStyle(
+        fontSize: 10,
+        fontWeight: pw.FontWeight.bold,
+      ),
+    ),
+    if (bankSelected) ...[
+      pw.Text(
+        'Cash Amount: ${amountpaidbyhand.text}',
+        style: pw.TextStyle(
+          fontSize: 10,
+          fontWeight: pw.FontWeight.bold,
+        ),
+      ),
+      pw.Text(
+        'Bank Amount: ${amountpaidbybank.text}',
+        style: pw.TextStyle(
+          fontSize: 10,
+          fontWeight: pw.FontWeight.bold,
+        ),
+      ),
+    ],
+  ],
+),
+                  //  pw.SizedBox(height: 10),
+                  // pw.Text(
+                  //   HandSelected
+                  //       ? 'Payment Method: by Hand'
+                  //       :"",
+                  //       // bankSelected ?
+                  //       //  'Payment Method: by Bank':'',
+                  //   style: pw.TextStyle(
+                  //     fontSize: 10,
+                  //     fontWeight: pw.FontWeight.bold,
+                  //   ),
+                  // ),
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.end,
                     children: [
-                      pw.Text('Amount Paid: ${amountpaid.text}',
+                      pw.Text('Amount Paid: $payminte',
                           style: pw.TextStyle(fontSize: 10)),
                     ],
                   ),
@@ -966,7 +1008,7 @@ void updateBalance() {
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.end,
                     children: [
-                      pw.Text('Balance Amount: $balanceAmount',
+                      pw.Text('Balance Amount: $balanceamounte',
                           style: pw.TextStyle(fontSize: 10)),
                     ],
                   ),
@@ -1025,37 +1067,58 @@ void updateBalance() {
         dateAddedController.text = DateFormat('yyyy-MM-dd').format(now);
       }
 
+
+
       final transactionData = {
-        'customerName': customer,
-        'contactInfo': contactInfo,
-        'items': itemDetailsList,
-        'amountPaid': amountpaid.text,
-        'balanceAmount': balanceAmount,
-        'date': dateAddedController.text,
-        'AmountExpense': amountexpanses.text,
-        'Expense': selectedExpense,
-        'byhandbybank': isHandSelected ? 'by Hand' : 'byBank',
-        'kataNumberController': kataNumberController.text,
-        'InvoiceNO': currentInvoiceNumber.toDouble(),
-        'Total': Total,
-        'Bankname': selectedbank,
-      };
-      if (balanceAmount == 0.0) {
-        //  await Hive.box('receipts').add(transactionData);
-         await Hive.box('receipts').add(transactionData);
+  'customerName': customer,
+  'contactInfo': contactInfo,
+  'items': itemDetailsList,
+  'amountPaid': payminte,
+   'amountPaidbyhand': amountpaidbyhand.text,
+  'amountPaidbybank': amountpaidbybank.text,
+  'balanceAmount': balanceamounte,
+  'date': dateAddedController.text,
+  'AmountExpense': amountexpanses.text,
+  'Expense': selectedExpense,
+  'paymentMethod': isCashSelected 
+      ? 'byHand' 
+      : bankSelected 
+          ? 'handbank' 
+          : 'byBank',
+  'kataNumberController': kataNumberController.text,
+  'InvoiceNO': currentInvoiceNumber.toDouble(),
+  'Total': Total,
+  'Bankname': bankSelected || !isCashSelected ? selectedbank : null,
+};
+      final kata = kataNumberController.text;
+      final amountpa = amountpaidbyhand.text;
+
+      if (balanceamounte == 0.0 && amountpa != '') {
         await Hive.box('dailyupdata').add(transactionData);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text("Data saved to Roznamcha  Records successfully!")),
         );
-      } else {
-        await Hive.box('dailyupdata').add(transactionData);
+      }
+      if (balanceamounte == 0.0 &&
+          amountpa == '' &&
+          Total != 0.0 &&
+          kata != '') {
         await Hive.box('receipts').add(transactionData);
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Data saved to Kata successfully!")),
         );
       }
+      if (balanceamounte != 0.0) {
+        await Hive.box('receipts').add(transactionData);
+        await Hive.box('dailyupdata').add(transactionData);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text("Data saved to Kata and Roznamcha successfully!")),
+        );
+      }
+
       await Printing.layoutPdf(
           onLayout: (PdfPageFormat format) async => pdf.save());
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1063,27 +1126,41 @@ void updateBalance() {
       );
       clearForm();
     } catch (e) {
-      debugPrint("Error during receipt generation/printing: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to generate/print receipt.")),
-      );
-    }
+  debugPrint("Error during receipt generation/printing: $e");
+  if (mounted) {  // Add this check
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Failed to generate/print receipt.")),
+    );
+  }
+}
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          title: Center(
-              child: Text(
-        'Sales Form',
-        style: TextStyle(
-          fontSize: 26,
-          fontWeight: FontWeight.bold,
-          color: Colors.black,
-          fontFamily: 'Roboto',
-        ),
-      ))),
+          title: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Sales Form',
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+              fontFamily: 'Roboto',
+            ),
+          ),
+          SizedBox(
+            width: 50,
+          ),
+          Text(
+            'Invoicenumber: $currentInvoiceNumber',
+            style: const TextStyle(
+                color: Colors.black, fontWeight: FontWeight.bold, fontSize: 20),
+          ),
+        ],
+      )),
       body: Container(
         height: double.infinity,
         decoration: BoxDecoration(
@@ -1162,19 +1239,8 @@ void updateBalance() {
                           ),
                         ),
                       ),
-                      SizedBox(width: 50),
-                      Text(
-                        'Invoicenumber: $currentInvoiceNumber',
-                        style: const TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20),
-                      ),
                     ],
                   ),
-                ),
-                SizedBox(
-                  height: 20,
                 ),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1394,7 +1460,7 @@ void updateBalance() {
                             },
                           ),
                           SizedBox(height: 10),
-                          _buildTextField(
+                          buildTextField(
                             controller: customername,
                             labelText: 'Customer Name',
                             //  name=customername.text.toString()
@@ -1439,7 +1505,7 @@ void updateBalance() {
                                     ),
                                   ),
                                   validator: (value) {
-                                    countectnumber = value.toString();
+                                   
 
                                     if (value == null || value.isEmpty) {
                                       return 'Please enter a customer number';
@@ -1453,247 +1519,361 @@ void updateBalance() {
                             ),
                           ),
                           SizedBox(height: 10),
+// ... existing code ...
+
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Radio<bool>(
-                                value: true,
-                                groupValue: isHandSelected,
-                                onChanged: (value) {
-                                  setState(() {
-                                    isHandSelected = value!;
-                                  });
-                                },
-                                activeColor: Colors.green,
-                              ),
-                              Text(
-                                'by Cash',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: isHandSelected
-                                      ? Colors.black
-                                      : Colors.grey,
+  mainAxisAlignment: MainAxisAlignment.start,
+  children: [
+    Radio<String>(
+      value: 'cash',
+      groupValue: isCashSelected ? 'cash' : bankSelected ? 'both' : 'bank',
+      onChanged: (value) {
+        setState(() {
+          isCashSelected = true;
+          bankSelected = false;
+        });
+      },
+      activeColor: Colors.green,
+    ),
+    Text(
+      'by Cash',
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: isCashSelected ? Colors.black : Colors.grey,
+      ),
+    ),
+    Radio<String>(
+      value: 'bank',
+      groupValue: isCashSelected ? 'cash' : bankSelected ? 'both' : 'bank',
+      onChanged: (value) {
+        setState(() {
+          isCashSelected = false;
+          bankSelected = false;
+        });
+      },
+      activeColor: Colors.blue,
+    ),
+    Text(
+      'by Bank',
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: (!isCashSelected && !bankSelected) ? Colors.black : Colors.grey,
+      ),
+    ),
+    Radio<String>(
+      value: 'both',
+      groupValue: isCashSelected ? 'cash' : bankSelected ? 'both' : 'bank',
+      onChanged: (value) {
+        setState(() {
+          bankSelected = true;
+          isCashSelected = false;
+        });
+      },
+      activeColor: Colors.purple,
+    ),
+    Text(
+      'Both',
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: bankSelected ? Colors.black : Colors.grey,
+      ),
+    ),
+  ],
+),
+
+// Replace the existing conditional rendering with this:
+                          if (isCashSelected)
+                            TextField(
+                              controller: amountpaidbyhand,
+                              keyboardType: TextInputType.numberWithOptions(
+                                  decimal: true),
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                    RegExp(r'^\d+\.?\d{0,2}')),
+                              ],
+                              decoration: InputDecoration(
+                                labelText: 'Amount Paid by Cash',
+                                border: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      width: 2.0, color: Colors.black),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      width: 2.0, color: Colors.black),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      width: 2.0, color: Colors.black),
                                 ),
                               ),
-                              Radio<bool>(
-                                value: false,
-                                groupValue: isHandSelected,
-                                onChanged: (value) {
-                                  setState(() {
-                                    isHandSelected = value!;
-                                    amountpaid.clear();
-                                  });
-                                },
-                                activeColor: Colors.blue,
-                              ),
-                              Text(
-                                'by Bank',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: !isHandSelected
-                                      ? Colors.black
-                                      : Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                          isHandSelected
-                              ? TextField(
-                                  controller: amountpaid,
-                                  keyboardType: TextInputType.numberWithOptions(
-                                      decimal: true),
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.allow(
-                                        RegExp(r'^\d+\.?\d{0,2}')),
-                                  ],
-                                  decoration: InputDecoration(
-                                    labelText: 'Amount Paid',
-                                    border: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                        width:
-                                            2.0, // Adjust the width to make the border bold
-                                        color: Colors
-                                            .black, // You can also set the color of the border
-                                      ),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                        width:
-                                            2.0, // Adjust the width to make the border bold
-                                        color: Colors
-                                            .black, // You can also set the color of the border
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                        width:
-                                            2.0, // Adjust the width to make the border bold
-                                        color: Colors
-                                            .black, // You can also set the color of the border
-                                      ),
-                                    ),
-                                  ),
-                                  onChanged: (_) => updateBalance(),
-                                )
-                              : Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Column(
+                              onChanged: (_) => updateBalance(),
+                            )
+                          else if (!isCashSelected && !bankSelected)
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
                                     children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          SizedBox(
-                                            height: 50,
-                                            width: 250,
-                                            child:
-                                                DropdownButtonFormField<String>(
-                                              value: selectedbank,
-                                              decoration: InputDecoration(
-                                                labelText: 'Select Bank Name',
-                                                labelStyle: TextStyle(
-                                                  color: Colors.teal.shade800,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                                fillColor: Colors.transparent,
-                                                enabledBorder:
-                                                    OutlineInputBorder(
-                                                  borderSide: BorderSide(
-                                                      color:
-                                                          Colors.teal.shade700),
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                ),
-                                                focusedBorder:
-                                                    OutlineInputBorder(
-                                                  borderSide: BorderSide(
-                                                      color:
-                                                          Colors.teal.shade900),
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                ),
+                                      SizedBox(
+                                        height: 50,
+                                        width: 250,
+                                        child: DropdownButtonFormField<String>(
+                                          value: selectedbank,
+                                          decoration: InputDecoration(
+                                            labelText: 'Select Bank Name',
+                                            labelStyle: TextStyle(
+                                              color: Colors.teal.shade800,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            fillColor: Colors.transparent,
+                                            enabledBorder: OutlineInputBorder(
+                                              borderSide: BorderSide(
+                                                  color: Colors.teal.shade700),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            focusedBorder: OutlineInputBorder(
+                                              borderSide: BorderSide(
+                                                  color: Colors.teal.shade900),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                          ),
+                                          items: Bank.map((category) {
+                                            return DropdownMenuItem(
+                                              value: category,
+                                              child: Text(
+                                                category,
+                                                style: TextStyle(
+                                                    color:
+                                                        Colors.teal.shade900),
                                               ),
-                                              items: Bank.map((category) {
-                                                return DropdownMenuItem(
-                                                  value: category,
-                                                  child: Text(
-                                                    category,
-                                                    style: TextStyle(
-                                                        color: Colors
-                                                            .teal.shade900),
-                                                  ),
-                                                );
-                                              }).toList(),
-                                              onChanged: (value) {
-                                                setState(() {
-                                                  selectedbank = value;
-                                                });
-                                              },
-                                              validator: (value) => value ==
-                                                      null
-                                                  ? 'Please select a category'
-                                                  : null,
-                                            ),
-                                          ),
-                                          IconButton(
-                                            icon: Icon(
-                                              Icons.add,
-                                              size: 30,
-                                            ),
-                                            color: Colors.teal.shade800,
-                                            onPressed: () => addbanke(context),
-                                            tooltip: 'Add New bank',
-                                          ),
-                                        ],
-                                      ),
-                                      TextField(
-                                        controller: amountpaid,
-                                        keyboardType:
-                                            TextInputType.numberWithOptions(
-                                                decimal: true),
-                                        inputFormatters: [
-                                          FilteringTextInputFormatter.allow(
-                                              RegExp(r'^\d+\.?\d{0,2}')),
-                                        ],
-                                        decoration: InputDecoration(
-                                          labelText: 'Amount Paid',
-                                          border: OutlineInputBorder(
-                                            borderSide: BorderSide(
-                                              width:
-                                                  2.0, // Adjust the width to make the border bold
-                                              color: Colors.teal
-                                                  .shade800, // You can also set the color of the border
-                                            ),
-                                          ),
-                                          enabledBorder: OutlineInputBorder(
-                                            borderSide: BorderSide(
-                                              width:
-                                                  2.0, // Adjust the width to make the border bold
-                                              color: Colors.teal
-                                                  .shade800, // You can also set the color of the border
-                                            ),
-                                          ),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderSide: BorderSide(
-                                              width:
-                                                  2.0, // Adjust the width to make the border bold
-                                              color: Colors
-                                                  .black, // You can also set the color of the border
-                                            ),
-                                          ),
+                                            );
+                                          }).toList(),
+                                          onChanged: (value) {
+                                            setState(() {
+                                              selectedbank = value;
+                                            });
+                                          },
+                                          validator: (value) => value == null
+                                              ? 'Please select a category'
+                                              : null,
                                         ),
-                                        onChanged: (_) => updateBalance(),
-                                      )
+                                      ),
+                                      IconButton(
+                                        icon: Icon(Icons.add, size: 30),
+                                        color: Colors.teal.shade800,
+                                        onPressed: () => addbanke(context),
+                                        tooltip: 'Add New bank',
+                                      ),
                                     ],
                                   ),
-                                ),
-                        TextFormField(
-                            controller: TotalAmount,
-                            
-                            keyboardType: TextInputType.number,
-                            
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                            
-                            decoration: InputDecoration(
-                              labelText: 'Total',
-                                labelStyle:  TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold),
-                              border: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  width:
-                                      2.0, // Adjust the width to make the border bold
-                                  color: Colors
-                                      .black, // You can also set the color of the border
-                                ),
+                                  TextField(
+                                    controller: amountpaidbybank,
+                                    keyboardType:
+                                        TextInputType.numberWithOptions(
+                                            decimal: true),
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.allow(
+                                          RegExp(r'^\d+\.?\d{0,2}')),
+                                    ],
+                                    decoration: InputDecoration(
+                                      labelText: 'Amount Paid by Bank',
+                                      border: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                            width: 2.0,
+                                            color: Colors.teal.shade800),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                            width: 2.0,
+                                            color: Colors.teal.shade800),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                            width: 2.0, color: Colors.black),
+                                      ),
+                                    ),
+                                    onChanged: (_) => updateBalance(),
+                                  )
+                                ],
                               ),
-                              enabledBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  width:
-                                      2.0, // Adjust the width to make the border bold
-                                  color: Colors
-                                      .transparent, // You can also set the color of the border
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  width:
-                                      2.0, // Adjust the width to make the border bold
-                                  color: Colors
-                                      .transparent, // You can also set the color of the border
-                                ),
+                            )
+                          else if (bankSelected)
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Column(
+                                children: [
+                                  TextField(
+                                    controller: amountpaidbyhand,
+                                    keyboardType:
+                                        TextInputType.numberWithOptions(
+                                            decimal: true),
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.allow(
+                                          RegExp(r'^\d+\.?\d{0,2}')),
+                                    ],
+                                    decoration: InputDecoration(
+                                      labelText: 'Amount Paid by Cash',
+                                      border: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                            width: 2.0, color: Colors.black),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                            width: 2.0, color: Colors.black),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                            width: 2.0, color: Colors.black),
+                                      ),
+                                    ),
+                                    onChanged: (_) => updateBalance(),
+                                  ),
+                                  SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      SizedBox(
+                                        height: 50,
+                                        width: 250,
+                                        child: DropdownButtonFormField<String>(
+                                          value: selectedbank,
+                                          decoration: InputDecoration(
+                                            labelText: 'Select Bank Name',
+                                            labelStyle: TextStyle(
+                                              color: Colors.teal.shade800,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            fillColor: Colors.transparent,
+                                            enabledBorder: OutlineInputBorder(
+                                              borderSide: BorderSide(
+                                                  color: Colors.teal.shade700),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            focusedBorder: OutlineInputBorder(
+                                              borderSide: BorderSide(
+                                                  color: Colors.teal.shade900),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                          ),
+                                          items: Bank.map((category) {
+                                            return DropdownMenuItem(
+                                              value: category,
+                                              child: Text(
+                                                category,
+                                                style: TextStyle(
+                                                    color:
+                                                        Colors.teal.shade900),
+                                              ),
+                                            );
+                                          }).toList(),
+                                          onChanged: (value) {
+                                            setState(() {
+                                              selectedbank = value;
+                                            });
+                                          },
+                                          validator: (value) => value == null
+                                              ? 'Please select a category'
+                                              : null,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: Icon(Icons.add, size: 30),
+                                        color: Colors.teal.shade800,
+                                        onPressed: () => addbanke(context),
+                                        tooltip: 'Add New bank',
+                                      ),
+                                    ],
+                                  ),
+                                  TextField(
+                                    controller: amountpaidbybank,
+                                    keyboardType:
+                                        TextInputType.numberWithOptions(
+                                            decimal: true),
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.allow(
+                                          RegExp(r'^\d+\.?\d{0,2}')),
+                                    ],
+                                    decoration: InputDecoration(
+                                      labelText: 'Amount Paid by Bank',
+                                      border: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                            width: 2.0,
+                                            color: Colors.teal.shade800),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                            width: 2.0,
+                                            color: Colors.teal.shade800),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                            width: 2.0, color: Colors.black),
+                                      ),
+                                    ),
+                                    onChanged: (_) => updateBalance(),
+                                  )
+                                ],
                               ),
                             ),
-                            validator: (value) {
-                              return null;
-                            },
+
+// ... existing code ...
+
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: TextFormField(
+                              controller: TotalAmount,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              decoration: InputDecoration(
+                                labelText: 'Total',
+                                labelStyle: TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.bold),
+                                border: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                    width:
+                                        2.0, // Adjust the width to make the border bold
+                                    color: Colors
+                                        .black, // You can also set the color of the border
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                    width:
+                                        2.0, // Adjust the width to make the border bold
+                                    color: Colors
+                                        .transparent, // You can also set the color of the border
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                    width:
+                                        2.0, // Adjust the width to make the border bold
+                                    color: Colors
+                                        .transparent, // You can also set the color of the border
+                                  ),
+                                ),
+                              ),
+                              validator: (value) {
+                                return null;
+                              },
+                            ),
                           ),
-                         
+
                           if (errorMessage == "bigto")
                             Text(
                               'you Amount paind is greater than Balance',
@@ -1703,11 +1883,11 @@ void updateBalance() {
                             ),
                           if (errorMessage == "null")
                             Text(
-                              'Balance: ${balanceAmount % 1 == 0 ? balanceAmount.toInt().toString() : balanceAmount.toStringAsFixed(2)}',
+                              'Balance: ${balanceamounte % 1 == 0 ? balanceamounte.toInt().toString() : balanceamounte.toStringAsFixed(2)}',
                               style: const TextStyle(
                                   fontSize: 18, fontWeight: FontWeight.bold),
                             ),
-                          SizedBox(height: 20),
+                          // SizedBox(height: 10),
                           Center(
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -1785,7 +1965,7 @@ void updateBalance() {
     );
   }
 
-  Widget _buildTextField({
+  Widget buildTextField({
     required TextEditingController controller,
     required String labelText,
     TextInputType? keyboardType,

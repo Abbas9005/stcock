@@ -22,7 +22,7 @@ class AmountPaidRecordsState extends State<AmountPaidRecords> {
   List<Map<dynamic, dynamic>> filteredRecords = [];
   double realbalanec = 0.0;
   double invoiceNumber = 0.0;
-    final TextEditingController totalController = TextEditingController();
+  final TextEditingController totalController = TextEditingController();
 
   String?
       selectedPaymentMethod; // State variable to keep track of the selected payment method
@@ -149,9 +149,8 @@ class AmountPaidRecordsState extends State<AmountPaidRecords> {
                 List<dynamic> keysToDelete = [];
                 for (var key in receiptsBox.keys) {
                   var boxRecord = receiptsBox.get(key);
-                  if (
-                      boxRecord['kataNumberController'] ==
-                          record['kataNumberController']) {
+                  if (boxRecord['kataNumberController'] ==
+                      record['kataNumberController']) {
                     keysToDelete.add(key);
                   }
                 }
@@ -317,6 +316,7 @@ class AmountPaidRecordsState extends State<AmountPaidRecords> {
                           groupValue: isHandSelected,
                           onChanged: (value) {
                             setState(() {
+                               bankname.text='';
                               isHandSelected = value!;
                             });
                           },
@@ -335,6 +335,7 @@ class AmountPaidRecordsState extends State<AmountPaidRecords> {
                           groupValue: isHandSelected,
                           onChanged: (value) {
                             setState(() {
+                              bankname.text='';
                               isHandSelected = value!;
                             });
                           },
@@ -417,16 +418,18 @@ class AmountPaidRecordsState extends State<AmountPaidRecords> {
                         }
 
                         double amountPaid = paymentHistory.fold(
-  0.0,
-  (sum, payment) {
-    double? amountPaid = double.tryParse(payment['amountPaid']?.toString() ?? '0');
-    if (amountPaid == null) {
-      debugPrint('Error: Unable to parse amountPaid for payment: $payment');
-      amountPaid = 0.0;
-    }
-    return sum + amountPaid;
-  },
-);
+                          0.0,
+                          (sum, payment) {
+                            double? amountPaid = double.tryParse(
+                                payment['amountPaid']?.toString() ?? '0');
+                            if (amountPaid == null) {
+                              debugPrint(
+                                  'Error: Unable to parse amountPaid for payment: $payment');
+                              amountPaid = 0.0;
+                            }
+                            return sum + amountPaid;
+                          },
+                        );
                         // Calculate existing balance and amount paid
                         final existingBalanceAmount =
                             paymentHistory.fold(0.0, (sum, payment) {
@@ -434,11 +437,9 @@ class AmountPaidRecordsState extends State<AmountPaidRecords> {
                               payment['Total'] is num ? payment['Total'] : 0.0;
                           return sum + total;
                         });
-                        
 
                         final updatedAmountPaid = newAmountPaid;
-                        final updatedBalanceAmount = existingBalanceAmount ;
-                            
+                        final updatedBalanceAmount = existingBalanceAmount;
 
 //                         double totals = paymentHistory.fold(
 //   0.0,
@@ -452,58 +453,61 @@ class AmountPaidRecordsState extends State<AmountPaidRecords> {
 //   },
 // );
 
+                        // Aggregate data for the record
+                        final totalAmountPaid = paymentHistory.fold(
+                            0.0,
+                            (sum, payment) =>
+                                sum +
+                                (double.tryParse(
+                                        payment['amountPaid']?.toString() ??
+                                            '0') ??
+                                    0.0));
 
+                        double totals = paymentHistory.fold(
+                          0.0,
+                          (sum, payment) {
+                            double? total = double.tryParse(
+                                payment['Total']?.toString() ?? '0');
+                            if (total == null) {
+                              debugPrint(
+                                  'Error: Unable to parse Total for payment: $payment');
+                              total = 0.0;
+                            }
+                            return sum + total;
+                          },
+                        );
 
-                            // Aggregate data for the record
-                            final totalAmountPaid = paymentHistory.fold(
-                                0.0,
-                                (sum, payment) =>
-                                    sum +
-                                    (double.tryParse(
-                                            payment['amountPaid']?.toString() ??
-                                                '0') ??
-                                        0.0));
-
-                       double totals = paymentHistory.fold(
-  0.0,
-  (sum, payment) {
-    double? total = double.tryParse(payment['Total']?.toString() ?? '0');
-    if (total == null) {
-      debugPrint('Error: Unable to parse Total for payment: $payment');
-      total = 0.0;
-    }
-    return sum + total;
-  },
-);
-
-
-final balanceAmount = paymentHistory.fold(
-                                0.0,
-                                (sum, payment) =>
-                                    sum +
-                                    (double.tryParse(
-                                            payment['balanceAmount']?.toString() ??
-                                                '0') ??
-                                        0.0));
-double totalBalanceAmount = totals - totalAmountPaid-updatedAmountPaid;
+                        final balanceAmount = paymentHistory.fold(
+                            0.0,
+                            (sum, payment) =>
+                                sum +
+                                (double.tryParse(
+                                        payment['balanceAmount']?.toString() ??
+                                            '0') ??
+                                    0.0));
+                        double totalBalanceAmount =
+                            totals - totalAmountPaid - updatedAmountPaid;
 
 // Ensure updatedTotal is correctly calculated and used
-double updatedTotal = double.tryParse(totalController.text) ?? 0.0;
+                        double updatedTotal =
+                            double.tryParse(totalController.text) ?? 0.0;
 
-Map<String, dynamic> newPayment = {
-  'customerName': customerName.text,
-  'Bankname': bankname.text,
-  'contactInfo': contactInfoController.text,
-  'date': dateController.text,
-  'amountPaid': updatedAmountPaid,
-  'byhandbybank': isHandSelected ? 'by Hand' : 'byBank',
-  'balanceAmount': totalBalanceAmount,
-  'kataNumberController': record['kataNumberController'],
-  'Total': updatedTotal, // Ensure this is set correctly
-};
+                        Map<String, dynamic> newPayment = {
+                          'customerName': customerName.text,
+                          'Bankname': bankname.text,
+                          'contactInfo': contactInfoController.text,
+                          'date': dateController.text,
+                          'amountPaid': updatedAmountPaid,
+                             'amountPaidbyhand': isHandSelected? updatedAmountPaid:'',
+                            'amountPaidbybank':isHandSelected?'': updatedAmountPaid,
+                          'paymentMethod': isHandSelected ? 'by Hand' : 'byBank',
+                          'balanceAmount': totalBalanceAmount,
+                          'kataNumberController':
+                              record['kataNumberController'],
+                          'Total': updatedTotal, // Ensure this is set correctly
+                        };
 
-paymentHistory.add(newPayment);
-
+                        paymentHistory.add(newPayment);
 
                         String dailyKey =
                             '${dateController.text}_${DateTime.now().millisecondsSinceEpoch}';
@@ -546,7 +550,7 @@ paymentHistory.add(newPayment);
       // Initial load and sort
       allRecords = receiptsBox.values.cast<Map>().toList();
       allRecords.sort((a, b) {
-       try {
+        try {
           return DateTime.parse(b['date']).compareTo(DateTime.parse(a['date']));
         } catch (e) {
           debugPrint('Date parsing error: $e');
@@ -559,8 +563,7 @@ paymentHistory.add(newPayment);
 
       // Process all records once
       for (var record in allRecords) {
-        final String uniqueKey =
-            '${record['kataNumberController']}';
+        final String uniqueKey = '${record['kataNumberController']}';
 
         if (!uniqueRecords.containsKey(uniqueKey)) {
           uniqueRecords[uniqueKey] = {
@@ -572,7 +575,7 @@ paymentHistory.add(newPayment);
                 'date': record['date'],
                 'amountPaid': record['amountPaid'],
                 'balanceAmount': record['balanceAmount'],
-                'byhandbybank': record['byhandbybank'],
+                'paymentMethod': record['paymentMethod'],
                 'InvoiceNO': record['InvoiceNO'],
                 'Total': record['Total'],
               }
@@ -594,7 +597,7 @@ paymentHistory.add(newPayment);
             'date': record['date'],
             'amountPaid': record['amountPaid'],
             'balanceAmount': record['balanceAmount'],
-            'byhandbybank': record['byhandbybank'],
+            'paymentMethod': record['paymentMethod'],
             'InvoiceNO': record['InvoiceNO'],
             'Total': record['Total'],
           });
@@ -608,14 +611,12 @@ paymentHistory.add(newPayment);
                       0.0));
 
           // Ensure 'Total' is not null
-       double totalBalanceAmount;
-try {
-  totalBalanceAmount = double.parse(record['Total'] ?? '0.0');
-} catch (e) {
-  totalBalanceAmount = 0.0; // Fallback in case of parsing failure
-}
-
-
+          double totalBalanceAmount;
+          try {
+            totalBalanceAmount = double.parse(record['Total'] ?? '0.0');
+          } catch (e) {
+            totalBalanceAmount = 0.0; // Fallback in case of parsing failure
+          }
 
           // Sort payment history
           paymentHistory.sort((a, b) {
@@ -668,7 +669,6 @@ try {
       debugPrint('Filtered Records: $filteredRecords');
     });
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -749,24 +749,24 @@ try {
                                     : [];
                             invoiceNumber = record['InvoiceNO'] ??
                                 0.0; // Ensure invoiceNumber is a double
-                           String? totalString = record['Total']?.toString();
+                            String? totalString = record['Total']?.toString();
 
-double? total;
+                            double? total;
 
-if (totalString != null) {
-  total = double.tryParse(totalString);
-  if (total == null) {
-    // Handle the case where the conversion failed
-    print('Error: Unable to convert "$totalString" to a double.');
-  }
-} else {
-  // Handle the case where record['Total'] is null
-  print('Error: record["Total"] is null.');
-}
-
+                            if (totalString != null) {
+                              total = double.tryParse(totalString);
+                              if (total == null) {
+                                // Handle the case where the conversion failed
+                                print(
+                                    'Error: Unable to convert "$totalString" to a double.');
+                              }
+                            } else {
+                              // Handle the case where record['Total'] is null
+                              print('Error: record["Total"] is null.');
+                            }
 
                             // Aggregate data for the record
-                            final totalAmountPaid = paymentHistory.fold(
+                            final AmountPaidbyhand = paymentHistory.fold(
                                 0.0,
                                 (sum, payment) =>
                                     sum +
@@ -774,32 +774,44 @@ if (totalString != null) {
                                             payment['amountPaid']?.toString() ??
                                                 '0') ??
                                         0.0));
-
-                       double totals = paymentHistory.fold(
-  0.0,
-  (sum, payment) {
-    double? total = double.tryParse(payment['Total']?.toString() ?? '0');
-    if (total == null) {
-      debugPrint('Error: Unable to parse Total for payment: $payment');
-      total = 0.0;
-    }
-    return sum + total;
-  },
-);
-
-
-final balanceAmount = paymentHistory.fold(
+                            final AmountPaidbybank = paymentHistory.fold(
                                 0.0,
                                 (sum, payment) =>
                                     sum +
-                                    (double.tryParse(
-                                            payment['balanceAmount']?.toString() ??
-                                                '0') ??
+                                    (double.tryParse(payment['amountPaidbybank']
+                                                ?.toString() ??
+                                            '0') ??
                                         0.0));
-double totalBalanceAmount = totals - totalAmountPaid;
-                         
+
+                            double totals = paymentHistory.fold(
+                              0.0,
+                              (sum, payment) {
+                                double? total = double.tryParse(
+                                    payment['Total']?.toString() ?? '0');
+                                if (total == null) {
+                                  debugPrint(
+                                      'Error: Unable to parse Total for payment: $payment');
+                                  total = 0.0;
+                                }
+                                return sum + total;
+                              },
+                            );
+                            final totalAmountPaid =
+                                AmountPaidbyhand + AmountPaidbybank;
+
+                            final balanceAmount = paymentHistory.fold(
+                                0.0,
+                                (sum, payment) =>
+                                    sum +
+                                    (double.tryParse(payment['balanceAmount']
+                                                ?.toString() ??
+                                            '0') ??
+                                        0.0));
+                            double totalBalanceAmount =
+                                totals - totalAmountPaid;
+
                             String paymentMethods = paymentHistory
-                                .map((payment) => payment['byhandbybank'] ?? '')
+                                .map((payment) => payment['paymentMethod'] ?? '')
                                 .join(', ');
                             return Card(
                               elevation: 5,
@@ -814,33 +826,23 @@ double totalBalanceAmount = totals - totalAmountPaid;
                                       scrollDirection: Axis.horizontal,
                                       child: Row(
                                         children: [
-                                          Center(
-                                              child: Text('Customer Name: ',
-                                                  style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold))),
+                                          Text('Name: ',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold)),
                                           Text(record['customerName'] ?? '',
                                               style: TextStyle(
                                                   fontWeight: FontWeight.bold)),
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                                left: 100),
-                                            child: Center(
-                                                child: Text('Contact Info: ',
-                                                    style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold))),
-                                          ),
+                                          Center(
+                                              child: Text('    Contact: ',
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold))),
                                           Text(record['contactInfo'] ?? '',
                                               style: TextStyle(
                                                   fontWeight: FontWeight.bold)),
-                                          Padding(
-                                            padding: EdgeInsets.only(left: 50),
-                                            child: Text('Kata No: ',
-                                                style: TextStyle(
-                                                    fontWeight:
-                                                        FontWeight.bold)),
-                                          ),
+                                          Text('    Kata No: ',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold)),
                                           Text(
                                               record['kataNumberController'] ??
                                                   '',
@@ -917,9 +919,8 @@ double totalBalanceAmount = totals - totalAmountPaid;
                                               final totalKey =
                                                   '${payment['Total']}';
 
-                                            
                                               // Initialize _isEditing if not already initialized
-                                              
+
                                               // Check if InvoiceNO is present
                                               bool isInvoicePresent =
                                                   payment['InvoiceNO'] !=
@@ -931,41 +932,59 @@ double totalBalanceAmount = totals - totalAmountPaid;
 
                                               return TableRow(
                                                 children: [
-                       GestureDetector(
-  onTap: isInvoicePresent
-      ? () async {
-          print('Date field tapped'); // Debugging print statement
-      // Wait for the update
-          setState(() {
-            // Reload the updated data from Hive
-            final key = record['key'];
-            print('Key: $key'); // Debugging print statement
-            final updatedRecord = dailyupdataBox.get(key);
-            print('Updated Record: $updatedRecord'); // Debugging print statement
-            if (updatedRecord != null) {
-              record.addAll(updatedRecord);
-            }
-          });
-        }
-      : null,
-  child: (_isEditing[dateKey] ?? false) && isInvoicePresent
-
-      ? Padding(
-          padding: EdgeInsets.all(8),
-          child: TextField(
-            controller: controllers[dateKey],
-            onSubmitted: (value) {
-              debugPrint('Date submitted: $value');
-            },
-          ),
-        )
-      : Padding(
-          padding: EdgeInsets.all(8),
-          child: Text(formatDate(payment['date'] ?? '')),
-        ),
-),
-
-
+                                                  GestureDetector(
+                                                    onTap: isInvoicePresent
+                                                        ? () async {
+                                                            print(
+                                                                'Date field tapped'); // Debugging print statement
+                                                            // Wait for the update
+                                                            setState(() {
+                                                              // Reload the updated data from Hive
+                                                              final key =
+                                                                  record['key'];
+                                                              print(
+                                                                  'Key: $key'); // Debugging print statement
+                                                              final updatedRecord =
+                                                                  dailyupdataBox
+                                                                      .get(key);
+                                                              print(
+                                                                  'Updated Record: $updatedRecord'); // Debugging print statement
+                                                              if (updatedRecord !=
+                                                                  null) {
+                                                                record.addAll(
+                                                                    updatedRecord);
+                                                              }
+                                                            });
+                                                          }
+                                                        : null,
+                                                    child: (_isEditing[
+                                                                    dateKey] ??
+                                                                false) &&
+                                                            isInvoicePresent
+                                                        ? Padding(
+                                                            padding:
+                                                                EdgeInsets.all(
+                                                                    8),
+                                                            child: TextField(
+                                                              controller:
+                                                                  controllers[
+                                                                      dateKey],
+                                                              onSubmitted:
+                                                                  (value) {
+                                                                debugPrint(
+                                                                    'Date submitted: $value');
+                                                              },
+                                                            ),
+                                                          )
+                                                        : Padding(
+                                                            padding:
+                                                                EdgeInsets.all(
+                                                                    8),
+                                                            child: Text(formatDate(
+                                                                payment['date'] ??
+                                                                    '')),
+                                                          ),
+                                                  ),
                                                   Padding(
                                                       padding:
                                                           EdgeInsets.all(8),
@@ -976,40 +995,37 @@ double totalBalanceAmount = totals - totalAmountPaid;
                                                   GestureDetector(
                                                     onTap: isInvoicePresent
                                                         ? () {
-                                                            setState(() {
-                                                             
-                                                            });
+                                                            setState(() {});
                                                           }
                                                         : null,
-                                                    child:
-                                                       _isEditing[totalKey] ?? false
- &&
+                                                    child: _isEditing[
+                                                                totalKey] ??
+                                                            false &&
                                                                 isInvoicePresent
-                                                            ? Padding(
-                                                                padding:
-                                                                    EdgeInsets
-                                                                        .all(8),
-                                                                child:
-                                                                    TextField(
-                                                                  controller:
-                                                                      controllers[
-                                                                          totalKey],
-                                                                  onSubmitted:
-                                                                      (value) {
-                                                                    debugPrint(
-                                                                        'Total submitted: $value'); // Debugging print statement
-                                                                  },
-                                                                ),
-                                                              )
-                                                            : Padding(
-                                                                padding:
-                                                                    EdgeInsets
-                                                                        .all(8),
-                                                                child: Text(
-                                                                    payment['Total']
-                                                                            ?.toString() ??
-                                                                        ''),
-                                                              ),
+                                                        ? Padding(
+                                                            padding:
+                                                                EdgeInsets.all(
+                                                                    8),
+                                                            child: TextField(
+                                                              controller:
+                                                                  controllers[
+                                                                      totalKey],
+                                                              onSubmitted:
+                                                                  (value) {
+                                                                debugPrint(
+                                                                    'Total submitted: $value'); // Debugging print statement
+                                                              },
+                                                            ),
+                                                          )
+                                                        : Padding(
+                                                            padding:
+                                                                EdgeInsets.all(
+                                                                    8),
+                                                            child: Text(payment[
+                                                                        'Total']
+                                                                    ?.toString() ??
+                                                                ''),
+                                                          ),
                                                   ),
                                                   Padding(
                                                       padding:
@@ -1029,7 +1045,7 @@ double totalBalanceAmount = totals - totalAmountPaid;
                                                       padding:
                                                           EdgeInsets.all(8),
                                                       child: Text(payment[
-                                                              'byhandbybank'] ??
+                                                              'paymentMethod'] ??
                                                           '')),
                                                 ],
                                               );
@@ -1086,6 +1102,7 @@ double totalBalanceAmount = totals - totalAmountPaid;
                                       children: [
                                         IconButton(
                                           icon: Icon(Icons.edit),
+                                          tooltip: "Edit",
                                           color: totals == 0
                                               ? Colors.grey.shade400
                                               : Colors.teal.shade800,
@@ -1095,9 +1112,9 @@ double totalBalanceAmount = totals - totalAmountPaid;
                                         ),
                                         IconButton(
                                           icon: Icon(Icons.delete),
+                                          tooltip: "Delete",
                                           color: Colors.red.shade600,
-                                          onPressed: () =>
-                                              deleteRecord(record),
+                                          onPressed: () => deleteRecord(record),
                                         ),
                                       ],
                                     ),
@@ -1115,6 +1132,4 @@ double totalBalanceAmount = totals - totalAmountPaid;
       ),
     );
   }
-
 }
- 

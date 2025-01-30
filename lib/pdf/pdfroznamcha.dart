@@ -3,6 +3,7 @@ import 'package:hive/hive.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:intl/intl.dart';
 
 
 class pdfroznamcha extends StatefulWidget {
@@ -85,8 +86,113 @@ Future<pw.Image> buildImage() async {
       }
     });
   }
+@override
+Widget build(BuildContext context) {
+  return IconButton(
+    icon: Icon(Icons.print, color: Colors.black),
+    tooltip: "Print Records",
+    splashRadius: 24,
+    onPressed: () {
+      _showPrintOptionsDialog(context);
+    },
+  );
+}
 
-Future<void> generatePdf() async {
+void _showPrintOptionsDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text(
+          'Select Print Range',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.teal.shade800,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.today, color: Colors.blue),
+              title: Text('Today\'s Records'),
+              onTap: () {
+                Navigator.pop(context);
+                _filterAndPrintRecords('day');
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.calendar_month, color: Colors.green),
+              title: Text('This Month\'s Records'),
+              onTap: () {
+                Navigator.pop(context);
+                _filterAndPrintRecords('month');
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.all_inbox, color: Colors.purple),
+              title: Text('All Records'),
+              onTap: () {
+                Navigator.pop(context);
+                _filterAndPrintRecords('all');
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+void _filterAndPrintRecords(String timeRange) {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final thisMonth = DateTime(now.year, now.month, 1);
+
+  setState(() {
+    switch (timeRange) {
+      case 'day':
+        _filteredRecords = _allRecords.where((record) {
+          try {
+            final recordDate = DateTime.parse(record['date']);
+            return recordDate.isAtSameMomentAs(today);
+          } catch (e) {
+            print('Error parsing date: ${record['date']}');
+            return false;
+          }
+        }).toList();
+        break;
+
+      case 'month':
+        _filteredRecords = _allRecords.where((record) {
+          try {
+            final recordDate = DateTime.parse(record['date']);
+            return recordDate.year == thisMonth.year && 
+                   recordDate.month == thisMonth.month;
+          } catch (e) {
+            print('Error parsing date: ${record['date']}');
+            return false;
+          }
+        }).toList();
+        break;
+
+      case 'all':
+        _filteredRecords = List.from(_allRecords);
+        break;
+    }
+  });
+
+  // Update the PDF title based on selection
+  String reportTitle = timeRange == 'day' 
+      ? 'Daily Roznamcha Report (${today.toString().split(' ')[0]})'
+      : timeRange == 'month'
+          ? 'Monthly Roznamcha Report (${DateFormat('MMMM yyyy').format(now)})'
+          : 'Complete Roznamcha Report';
+
+  generatePdf(reportTitle);
+}
+
+Future<void> generatePdf(String reportTitle) async {
   final pdf = pw.Document();
   final pwgmimge = await gmImage();
   final pwImage = await buildImage();
@@ -144,7 +250,7 @@ Future<void> generatePdf() async {
         pw.SizedBox(height: 10),
         pw.Center(
           child: pw.Text(
-            'Roznamcha Summary Report',
+            reportTitle,
             style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
           ),
         ),
@@ -155,39 +261,37 @@ Future<void> generatePdf() async {
 
   // Table header
   pw.TableRow buildTableHeader() {
-    
-    
     return pw.TableRow(
-
-
-      
       decoration: pw.BoxDecoration(color: PdfColors.grey300),
       children: [
-        //  pw.Padding(
-        //   padding: pw.EdgeInsets.all(8),
-        //   child: pw.Text('Expense For', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-        // ),
         pw.Padding(
           padding: pw.EdgeInsets.all(8),
-          child: pw.Text('Date  ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          child: pw.Text('Date', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
         ),
         pw.Padding(
           padding: pw.EdgeInsets.all(8),
           child: pw.Text('Invoice', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
         ),
+        //  pw.Padding(
+        //   padding: pw.EdgeInsets.all(8),
+        //   child: pw.Text('Kata', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+        // ),
         pw.Padding(
           padding: pw.EdgeInsets.all(8),
-          child: pw.Text('Customer Name', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          child: pw.Text('Name', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
         ),
         pw.Padding(
           padding: pw.EdgeInsets.all(8),
-          child: pw.Text('Amount Paid', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          child: pw.Text('Amount', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
         ),
         pw.Padding(
           padding: pw.EdgeInsets.all(8),
-          child: pw.Text('Expense', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          child: pw.Text('ByHand', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
         ),
-       
+          pw.Padding(
+          padding: pw.EdgeInsets.all(8),
+          child: pw.Text('Bybank', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+        ),
         pw.Padding(
           padding: pw.EdgeInsets.all(8),
           child: pw.Text('Method', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
@@ -208,6 +312,10 @@ Future<void> generatePdf() async {
           padding: pw.EdgeInsets.all(4),
           child: pw.Text(record['InvoiceNO']?.toString() ?? 'Form Kata'),
         ),
+        //  pw.Padding(
+        //   padding: pw.EdgeInsets.all(4),
+        //   child: pw.Text(record['kataNumberController']?.toString() ?? ''),
+        // ),
         pw.Padding(
           padding: pw.EdgeInsets.all(4),
           child: pw.Text(record['customerName']?.toString() ?? ''),
@@ -218,22 +326,74 @@ Future<void> generatePdf() async {
         ),
         pw.Padding(
           padding: pw.EdgeInsets.all(4),
-          child: pw.Text(record['AmountExpense']?.toString() ?? '0'),
+          child: pw.Text(record['amountPaidbybank']?.toString() ?? ''),
         ),
-       
-        
         pw.Padding(
           padding: pw.EdgeInsets.all(4),
-          child: pw.Text(record['byhandbybank']?.toString() ?? ''),
+          child: pw.Text(record['amountPaidbybank']?.toString() ?? '', style: pw.TextStyle(color: PdfColors.red)),
+        ),
+        pw.Padding(
+          padding: pw.EdgeInsets.all(4),
+          child: pw.Text(record['paymentMethod']?.toString() ?? ''),
         ),
       ],
     );
   }
 
+  // Summary widget
+  pw.Widget buildSummary() {
+    double totalAmountPaid = _filteredRecords.fold(0.0, 
+      (sum, record) => sum + (double.tryParse(record['amountPaid']?.toString() ?? '0') ?? 0.0));
+    
+    double totalExpenses = _filteredRecords.fold(0.0, 
+      (sum, record) => sum + (double.tryParse(record['AmountExpense']?.toString() ?? '0') ?? 0.0));
+
+    // Calculate totals by payment method
+    double totalByHand = _filteredRecords.fold(0.0, (sum, record) {
+   
+        return sum + (double.tryParse(record['amountPaidbyhand']?.toString() ?? '0') ?? 0.0);
+     
+    });
+
+    double totalByBank = _filteredRecords.fold(0.0, (sum, record) {
+   
+        return sum + (double.tryParse(record['amountPaidbybank']?.toString() ?? '0') ?? 0.0);
+  
+    
+    });
+
+
+
+    return pw.Container(
+      padding: pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(),
+        color: PdfColors.grey100,
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text('Summary:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 5),
+          pw.Text('Total Records: ${_filteredRecords.length}'),
+          pw.Text('Total Amount Paid: ${totalAmountPaid.toStringAsFixed(2)}'),
+          pw.Text('Amount Paid by Hand: ${totalByHand.toStringAsFixed(2)}'),
+          pw.Text('Amount Paid by Bank: ${totalByBank.toStringAsFixed(2)}', style: pw.TextStyle(color: PdfColors.red)),
+          pw.Text('Total Expenses: ${totalExpenses.toStringAsFixed(2)}'),
+        ],
+      ),
+    );
+  }
+
   // Add pages with limited records per page
-  const int recordsPerPage = 20; // Adjust this number based on your needs
+  const int recordsPerPage = 20;
   for (int i = 0; i < _filteredRecords.length; i += recordsPerPage) {
-    final pageRecords = _filteredRecords.sublist(i, i + recordsPerPage > _filteredRecords.length ? _filteredRecords.length : i + recordsPerPage);
+    final pageRecords = _filteredRecords.sublist(
+      i, 
+      i + recordsPerPage > _filteredRecords.length 
+          ? _filteredRecords.length 
+          : i + recordsPerPage
+    );
 
     pdf.addPage(
       pw.MultiPage(
@@ -257,6 +417,11 @@ Future<void> generatePdf() async {
               ...pageRecords.map(buildTableRow).toList(),
             ],
           ),
+          // Add summary only on the last page
+          if (i + recordsPerPage >= _filteredRecords.length) ...[
+            pw.SizedBox(height: 20),
+            buildSummary(),
+          ],
         ],
       ),
     );
@@ -264,20 +429,4 @@ Future<void> generatePdf() async {
 
   await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
 }
-
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: Icon(Icons.print, color: Colors.black),
-      tooltip: "print Records", // Adds a hover tooltip
-  splashRadius: 24, 
-      onPressed: () {
-        
-        // Debugging information
-        print('Filtered Records: $_filteredRecords');
-        generatePdf();
-      },
-    );
-  }
 }

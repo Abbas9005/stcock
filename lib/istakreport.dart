@@ -2,16 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
 import 'package:my_stock/pdf/reportistock.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 
 class istakfordescrption extends StatefulWidget {
   final String itemName;
   final double total;
   final String dateAdded;
 
-  const istakfordescrption({super.key,
+  const istakfordescrption({
+    super.key,
     required this.itemName,
     required this.total,
     required this.dateAdded,
@@ -39,32 +37,42 @@ class _istakfordescrptionState extends State<istakfordescrption> {
   }
 
   Future<void> initializeBox() async {
-    dailyupdataBox = await Hive.openBox('dailyupdata');
-    loadRecords();
+    try {
+      dailyupdataBox = await Hive.openBox('dailyupdata');
+      loadRecords();
+    } catch (e) {
+      print('Error initializing Hive box: $e');
+    }
   }
 
   void loadRecords() {
-    List<Map<dynamic, dynamic>> records = [];
+    try {
+      List<Map<dynamic, dynamic>> records = [];
 
-    for (var record in dailyupdataBox.values) {
-      if (record is Map && record['items'] is List) {
-        List items = record['items'] as List;
-        for (var item in items) {
-          if (item['itemName'] == widget.itemName) {
-            records.add({
-              ...record,
-              'matchedItem': item,
-            });
+      for (var record in dailyupdataBox.values) {
+        if (record is Map && record['items'] is List) {
+          List items = record['items'] as List;
+          for (var item in items) {
+            if (item['itemName'] == widget.itemName) {
+              records.add({
+                ...record,
+                'matchedItem': item,
+              });
+            }
           }
         }
       }
-    }
 
-    setState(() {
-      allRecords = records;
-      filteredRecords = List.from(records.reversed);
-      calculateTotalSell();
-    });
+      print('Loaded records: $records'); // Debug print
+
+      setState(() {
+        allRecords = records;
+        filteredRecords = List.from(records.reversed);
+        calculateTotalSell();
+      });
+    } catch (e) {
+      print('Error loading records: $e');
+    }
   }
 
   String formatDate(String date) {
@@ -81,18 +89,23 @@ class _istakfordescrptionState extends State<istakfordescrption> {
       if (query.isEmpty) {
         filteredRecords = List.from(allRecords.reversed);
       } else {
-        filteredRecords = allRecords.where((record) {
-          final customerName = record['customerName']?.toString().toLowerCase() ?? '';
-          final date = record['date']?.toString() ?? '';
+        filteredRecords = allRecords
+            .where((record) {
+              final customerName =
+                  record['customerName']?.toString().toLowerCase() ?? '';
+              final date = record['date']?.toString() ?? '';
 
-          bool isDateQuery = RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(query);
+              bool isDateQuery = RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(query);
 
-          if (isDateQuery) {
-            return date.contains(query);
-          } else {
-            return customerName.contains(query.toLowerCase());
-          }
-        }).toList().reversed.toList();
+              if (isDateQuery) {
+                return date.contains(query);
+              } else {
+                return customerName.contains(query.toLowerCase());
+              }
+            })
+            .toList()
+            .reversed
+            .toList();
       }
       calculateTotalSell();
     });
@@ -112,74 +125,101 @@ class _istakfordescrptionState extends State<istakfordescrption> {
     });
   }
 
-  Future<void> generatePdf() async {
-    final pdf = pw.Document();
+ void _showEditDialog(Map<dynamic, dynamic> record, Map<dynamic, dynamic> item) {
+  final TextEditingController quantityController =
+      TextEditingController(text: item['quantity']?.toString() ?? '');
+  final TextEditingController unitPriceController =
+      TextEditingController(text: item['unitPrice']?.toString() ?? '');
 
-    pdf.addPage(
-      pw.Page(
-        build: (pw.Context context) {
-          return pw.Column(
-            children: [
-              pw.Text('Stock Register: ${widget.itemName}', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 20),
-              pw.Text('Total sell: $totalsell', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 20),
-              pw.Table(
-                border: pw.TableBorder.all(),
-                children: [
-                  pw.TableRow(
-                    children: [
-                      pw.Text('Totalstock'),
-                      pw.Text('Remaining stock'),
-                      pw.Text('Quantity'),
-                      pw.Text('Unit Price'),
-                      pw.Text('Total'),
-                      pw.Text('Date'),
-                      pw.Text('Invoice No'),
-                      pw.Text('Customer Name'),
-                    ],
-                  ),
-                  pw.TableRow(
-                    children: [
-                      pw.Text(widget.total.toString()),
-                      pw.Text(''),
-                      pw.Text(''),
-                      pw.Text(''),
-                      pw.Text(''),
-                      pw.Text(widget.dateAdded),
-                      pw.Text(''),
-                      pw.Text(''),
-                    ],
-                  ),
-                  ...filteredRecords.reversed.map((record) {
-                    final item = record['matchedItem'];
-                    final quantity = item['quantity'];
-                    Remainingquantity = Remainingquantity - quantity;
-                    final totalof = item['quantity'] * item['unitPrice'];
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Edit Quantity and Unit Price'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: quantityController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(labelText: 'Quantity'),
+            ),
+            TextField(
+              controller: unitPriceController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(labelText: 'Unit Price'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              try {
+                final newQuantity = double.tryParse(quantityController.text) ?? 0.0;
+                final newUnitPrice = double.tryParse(unitPriceController.text) ?? 0.0;
 
-                    return pw.TableRow(
-                      children: [
-                        pw.Text(''),
-                        pw.Text('$Remainingquantity'),
-                        pw.Text(item['quantity']?.toString() ?? ''),
-                        pw.Text(item['unitPrice']?.toString() ?? ''),
-                        pw.Text('$totalof'),
-                        pw.Text(formatDate(record['date']?.toString() ?? '')),
-                        pw.Text(record['InvoiceNO']?.toString() ?? ''),
-                        pw.Text(record['customerName']?.toString() ?? ''),
-                      ],
-                    );
-                  }),
-                ],
-              ),
-            ],
-          );
-        },
-      ),
-    );
+                // Find the original record in the box
+                int recordIndex = -1;
+                Map<dynamic, dynamic>? originalRecord;
+                
+                for (int i = 0; i < dailyupdataBox.length; i++) {
+                  var boxRecord = dailyupdataBox.getAt(i);
+                  if (boxRecord['date'] == record['date'] && 
+                      boxRecord['InvoiceNO'] == record['InvoiceNO']) {
+                    recordIndex = i;
+                    originalRecord = Map<dynamic, dynamic>.from(boxRecord);
+                    break;
+                  }
+                }
 
-    await Printing.sharePdf(bytes: await pdf.save(), filename: 'stock_register.pdf');
-  }
+                if (recordIndex != -1 && originalRecord != null) {
+                  // Update the specific item in the items list
+                  List<dynamic> items = List.from(originalRecord['items']);
+                  for (int i = 0; i < items.length; i++) {
+                    if (items[i]['itemName'] == widget.itemName) {
+                      items[i] = {
+                        ...items[i],
+                        'quantity': newQuantity,
+                        'unitPrice': newUnitPrice,
+                      };
+                      break;
+                    }
+                  }
+                  
+                  // Create updated record
+                  Map<dynamic, dynamic> updatedRecord = {
+                    ...originalRecord,
+                    'items': items,
+                  };
+
+                  // Save to Hive
+                  await dailyupdataBox.putAt(recordIndex, updatedRecord);
+                  
+                  // Refresh the UI
+                  loadRecords();
+                }
+
+                Navigator.of(context).pop();
+              } catch (e) {
+                print('Error updating record: $e');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error updating record: $e')),
+                );
+              }
+            },
+            child: Text('Save'),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -197,7 +237,10 @@ class _istakfordescrptionState extends State<istakfordescrption> {
         ),
         centerTitle: true,
         actions: [
-         Reportistock(itemName:widget.itemName,total:widget.total,dateAdded:widget.dateAdded)
+          Reportistock(
+              itemName: widget.itemName,
+              total: widget.total,
+              dateAdded: widget.dateAdded)
         ],
       ),
       body: Container(
@@ -217,9 +260,7 @@ class _istakfordescrptionState extends State<istakfordescrption> {
                 decoration: InputDecoration(
                   labelText: 'Search by Customer Name',
                   labelStyle: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold
-                  ),
+                      color: Colors.black, fontWeight: FontWeight.bold),
                   prefixIcon: Icon(Icons.search, color: Colors.black),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8.0),
@@ -235,7 +276,9 @@ class _istakfordescrptionState extends State<istakfordescrption> {
                 onChanged: filterRecords,
               ),
             ),
-            SizedBox(width: 12,),
+            SizedBox(
+              width: 12,
+            ),
             Container(
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.9),
@@ -262,109 +305,186 @@ class _istakfordescrptionState extends State<istakfordescrption> {
               ),
             ),
             filteredRecords.isEmpty
-              ? Center(
-                  child: Text(
-                    'No matching records found',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                ? Center(
+                    child: Text(
+                      'No matching records found',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                )
-              : SizedBox(
-                height: 500,
-                width: 600,
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Stack(
-                    children: [
-                      ScrollbarTheme(
-                        data: ScrollbarThemeData(
-                          thumbColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
-                            if (states.contains(WidgetState.hovered)) {
-                              return Colors.black;
-                            }
-                            return Colors.grey.shade500;
-                          }),
-                          trackColor: WidgetStateProperty.all(Colors.transparent),
-                          trackVisibility: WidgetStateProperty.all(true),
-                          thickness: WidgetStateProperty.all(10.0),
-                        ),
-                        child: Scrollbar(
-                          thumbVisibility: true,
-                          controller: horizontalScrollController,
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            controller: horizontalScrollController,
+                  )
+                : SizedBox(
+                    height: 500,
+                    width: 600,
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Stack(
+                        children: [
+                          ScrollbarTheme(
+                            data: ScrollbarThemeData(
+                              thumbColor:
+                                  WidgetStateProperty.resolveWith<Color>(
+                                      (Set<WidgetState> states) {
+                                if (states.contains(WidgetState.hovered)) {
+                                  return Colors.black;
+                                }
+                                return Colors.grey.shade500;
+                              }),
+                              trackColor:
+                                  WidgetStateProperty.all(Colors.transparent),
+                              trackVisibility: WidgetStateProperty.all(true),
+                              thickness: WidgetStateProperty.all(10.0),
+                            ),
                             child: Scrollbar(
                               thumbVisibility: true,
-                              controller: verticalScrollController,
+                              controller: horizontalScrollController,
                               child: SingleChildScrollView(
-                                scrollDirection: Axis.vertical,
-                                controller: verticalScrollController,
-                                child: DataTable(
-                                  columns: const [
-                                    DataColumn(label: Text('Totalstock')),
-                                    DataColumn(label: Text('Remaining stock ')),
-                                    DataColumn(label: Text('Quantity')),
-                                    DataColumn(label: Text('Unit Price')),
-                                    DataColumn(label: Text('Total')),
-                                    DataColumn(label: Text('Date')),
-                                    DataColumn(label: Text('Invoice No')),
-                                    DataColumn(label: Text('Customer Name')),
-                                  ],
-                                  rows: [
-                                    // First row with widget values
-                                    DataRow(
-                                      cells: [
-                                        DataCell(Text(widget.total.toString())),
-                                        DataCell(Text('')),
-                                        DataCell(Text('')),
-                                        DataCell(Text('')),
-                                        DataCell(Text('')),
-                                        DataCell(Text(widget.dateAdded)),
-                                        DataCell(Text('')),
-                                        DataCell(Text('')),
+                                scrollDirection: Axis.horizontal,
+                                controller: horizontalScrollController,
+                                child: Scrollbar(
+                                  thumbVisibility: true,
+                                  controller: verticalScrollController,
+                                  child: SingleChildScrollView(
+                                    scrollDirection: Axis.vertical,
+                                    controller: verticalScrollController,
+                                    child: DataTable(
+                                      columns: const [
+                                        DataColumn(
+                                            label: Text(
+                                          'Totalstock',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black,
+                                          ),
+                                        )),
+                                        DataColumn(
+                                            label: Text(
+                                          'Remaining stock ',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black,
+                                          ),
+                                        )),
+                                        DataColumn(
+                                            label: Text(
+                                          'Quantity',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black,
+                                          ),
+                                        )),
+                                        DataColumn(
+                                            label: Text(
+                                          'Unit Price',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black,
+                                          ),
+                                        )),
+                                        DataColumn(
+                                            label: Text(
+                                          'Total',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black,
+                                          ),
+                                        )),
+                                        DataColumn(
+                                            label: Text(
+                                          'Date',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black,
+                                          ),
+                                        )),
+                                        DataColumn(
+                                            label: Text(
+                                          'Invoice No',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black,
+                                          ),
+                                        )),
+                                        DataColumn(
+                                            label: Text(
+                                          'Customer Name',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black,
+                                          ),
+                                        )),
+                                      ],
+                                      rows: [
+                                        // First row with widget values
+                                        DataRow(
+                                          cells: [
+                                            DataCell(
+                                                Text(widget.total.toString())),
+                                            DataCell(Text('')),
+                                            DataCell(Text('')),
+                                            DataCell(Text('')),
+                                            DataCell(Text('')),
+                                            DataCell(Text(widget.dateAdded)),
+                                            DataCell(Text('')),
+                                            DataCell(Text('')),
+                                          ],
+                                        ),
+                                        // Remaining rows from filtered records
+                                        ...filteredRecords.reversed
+                                            .map((record) {
+                                          final item = record['matchedItem'];
+                                          final quantity = item['quantity'];
+                                            final Remaining = item['Remaining'];
+                                          Remainingquantity =
+                                              Remainingquantity - quantity;
+
+                                          final totalof = item['quantity'] *
+                                              item['unitPrice'];
+
+                                          return DataRow(
+                                            cells: [
+                                              DataCell(Text('')),
+                                              DataCell(
+                                                  Text('$Remainingquantity')),
+                                              DataCell(
+                                                GestureDetector(
+                                                  onTap: () => _showEditDialog(
+                                                      record, item),
+                                                  child: Text(item['quantity']
+                                                          ?.toString() ??
+                                                      ''),
+                                                ),
+                                              ),
+                                              DataCell(Text(item['unitPrice']
+                                                      ?.toString() ??
+                                                  '')),
+                                              DataCell(Text('$totalof')),
+                                              DataCell(Text(formatDate(
+                                                  record['date']?.toString() ??
+                                                      ''))),
+                                              DataCell(Text(record['InvoiceNO']
+                                                      ?.toString() ??
+                                                  '')),
+                                              DataCell(Text(
+                                                  record['customerName']
+                                                          ?.toString() ??
+                                                      '')),
+                                            ],
+                                          );
+                                        }),
                                       ],
                                     ),
-                                    // Remaining rows from filtered records
-                                    ...filteredRecords.reversed.map((record) {
-                                      final item = record['matchedItem'];
-                                      final quantity = item['quantity'];
-
-                                      Remainingquantity = Remainingquantity - quantity;
-
-                                      final totalof = item['quantity'] * item['unitPrice'];
-
-                                      return DataRow(
-                                        cells: [
-                                          DataCell(Text('')),
-                                          DataCell(Text('$Remainingquantity')),
-                                          DataCell(Text(item['quantity']?.toString() ?? '')),
-                                          DataCell(Text(item['unitPrice']?.toString() ?? '')),
-                                          DataCell(Text('$totalof')),
-                                          DataCell(Text(formatDate(record['date']?.toString() ?? ''))),
-                                          DataCell(Text(record['InvoiceNO']?.toString() ?? '')),
-                                          DataCell(Text(record['customerName']?.toString() ?? '')),
-                                        ],
-                                      );
-                                    }),
-                                  ],
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            ElevatedButton(
-              onPressed: generatePdf,
-              child: Text('Generate PDF'),
-            ),
           ],
         ),
       ),

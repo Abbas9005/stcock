@@ -259,11 +259,11 @@ try {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
-                    'Customer Name: ${record['customerName'] ?? ''}',
+                    'Name: ${record['customerName'] ?? ''}',
                     style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                   ),
                   pw.Text(
-                    'Contact Info: ${record['contactInfo'] ?? ''}',
+                    '  Contact: ${record['contactInfo'] ?? ''}',
                     style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                   ),
                   pw.Text(

@@ -147,7 +147,7 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
     );
   }
 
-  void _editExpense(Map<dynamic, dynamic> record) async {
+  void editExpense(Map<dynamic, dynamic> record) async {
     final TextEditingController expenseController = TextEditingController();
     expenseController.text = record['AmountExpense']?.toString() ?? '';
     final TextEditingController expenseForController = TextEditingController();
@@ -304,8 +304,9 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
     );
   }
 
-  void _filterRecords(String query) {
+  void filterRecords(String query) {
     setState(() {
+       totalExpenses=0.0;
       if (query.isEmpty) {
         _filteredRecords = List.from(_allRecords.reversed);
       } else {
@@ -333,7 +334,7 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
     super.dispose();
   }
 
-  bool _isToday(String date) {
+  bool isToday(String date) {
     try {
       final currentDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
       final recordDate = DateFormat('yyyy-MM-dd').format(DateTime.parse(date));
@@ -344,7 +345,7 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
     }
   }
 
-  String _formatDate(String date) {
+  String formatDate(String date) {
     try {
       return DateFormat('yyyy-MM-dd').format(DateTime.parse(date));
     } catch (e) {
@@ -410,7 +411,7 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
                     ),
                     style: TextStyle(color: Colors.black),
                     cursorColor: Colors.black,
-                    onChanged: _filterRecords,
+                    onChanged: filterRecords,
                   ),
                 ),
                 Padding(
@@ -463,6 +464,7 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
                               return Text('Error loading data');
                             } else {
                               for (var record in _allRecords) {
+                              
                                 totalExpenses += double.tryParse(record['AmountExpense']?.toString() ?? '0.0') ?? 0.0;
                               }
                               formattedTotalExpenses = totalExpenses.toStringAsFixed(totalExpenses.truncate() == totalExpenses ? 0 : 2);
@@ -492,17 +494,17 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
                       } else {
                         double totalSalesToday = 0.0;
                         double totalByBank = 0.0;
-
+                            totalByHand=0.0;
                         for (var record in _allRecords) {
                           final date = record['date'] as String;
-                          if (_isToday(date)) {
+                          if (isToday(date)) {
                             totalSalesToday += double.tryParse(record['totalAmount']?.toString() ?? '0.0') ?? 0.0;
                           }
-                          if (record['byhandbybank'] == 'byBank') {
-                            totalByBank += double.tryParse(record['amountPaid']?.toString() ?? '0.0') ?? 0.0;
-                          } else {
-                            totalByHand += double.tryParse(record['amountPaid']?.toString() ?? '0.0') ?? 0.0;
-                          }
+                         
+                            totalByBank += double.tryParse(record['amountPaidbybank']?.toString() ?? '0.0') ?? 0.0;
+                           
+                            totalByHand += double.tryParse(record['amountPaidbyhand']?.toString() ?? '0.0') ?? 0.0;
+                          
                         }
 
                         return Column(
@@ -645,6 +647,24 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
                                                       ),
                                                     ),
                                                   ),
+                                                   DataColumn(
+                                                    label: Text(
+                                                      'byhand',
+                                                      style: TextStyle(
+                                                        fontWeight: FontWeight.bold,
+                                                        color: Colors.black,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                   DataColumn(
+                                                    label: Text(
+                                                      'bybank',
+                                                      style: TextStyle(
+                                                        fontWeight: FontWeight.bold,
+                                                        color: Colors.black,
+                                                      ),
+                                                    ),
+                                                  ),
                                                   DataColumn(
                                                     label: Text(
                                                       'Expense',
@@ -739,7 +759,23 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
                                                         Text(
                                                           '${record['amountPaid'] ?? '0.0'}',
                                                           style: TextStyle(
-                                                            color: record['byhandbybank'] == 'byBank' ? Colors.red : Colors.black,
+                                                            color: record['paymentMethod'] == 'byBank' ? Colors.red : Colors.black,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                        DataCell(
+                                                        Text(
+                                                          '${record['amountPaidbyhand'] ?? 0.0}',
+                                                          style: TextStyle(
+                                                            color: Colors.black,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                       DataCell(
+                                                        Text(
+                                                          '${record['amountPaidbybank'] ?? 0.0}',
+                                                          style: TextStyle(
+                                                            color: Colors.red,
                                                           ),
                                                         ),
                                                       ),
@@ -755,7 +791,8 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
                                                             ),
                                                             IconButton(
                                                               icon: Icon(Icons.edit, color: Colors.blue),
-                                                              onPressed: () => _editExpense(record),
+                                                               tooltip: "Edit",
+                                                              onPressed: () => editExpense(record),
                                                             ),
                                                           ],
                                                         ),
@@ -770,7 +807,7 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
                                                       ),
                                                       DataCell(
                                                         Text(
-                                                          _formatDate(record['date'] ?? ''),
+                                                          formatDate(record['date'] ?? ''),
                                                           style: TextStyle(
                                                             color: Colors.black,
                                                           ),
@@ -778,9 +815,9 @@ class _RoznamchaRecordsScreenState extends State<RoznamchaRecordsScreen> {
                                                       ),
                                                       DataCell(
                                                         Text(
-                                                          '${record['byhandbybank'] ?? ''}',
+                                                          '${record['paymentMethod'] ?? ''}',
                                                           style: TextStyle(
-                                                            color: record['byhandbybank'] == 'byBank' ? Colors.red : Colors.black,
+                                                            color: record['paymentMethod'] == 'byBank' ? Colors.red : Colors.black,
                                                           ),
                                                         ),
                                                       ),

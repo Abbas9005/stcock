@@ -78,7 +78,7 @@ class _StockManagementScreenState extends State<StockManagementScreen> {
     );
   }
 
-  void _saveStock(BuildContext context) {
+  void saveStock(BuildContext context) {
     if (_formKey.currentState!.validate()) {
       // Show confirmation dialog before saving
       showDialog(
@@ -142,13 +142,13 @@ class _StockManagementScreenState extends State<StockManagementScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Stock item saved successfully!'),
+                          content: Text(' item saved in Stock successfully!'),
                           backgroundColor: Color(0xFF4CAF50), // Green
                           behavior: SnackBarBehavior.floating,
                         ),
                       );
                     }
-                    _resetForm();
+                    resetForm();
                   }).catchError((e) {
                     debugPrint("Error saving stock item: $e");
                     if (mounted) {
@@ -161,6 +161,12 @@ class _StockManagementScreenState extends State<StockManagementScreen> {
                       );
                     }
                   });
+
+  Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => StockReport()),
+          );
+
                 },
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
@@ -257,12 +263,12 @@ class _StockManagementScreenState extends State<StockManagementScreen> {
     );
   }
 
-  void _resetForm() {
-    // _itemNameController.clear();
-    // _itemCodeController.clear();
-    // _quantityController.clear();
-    // _unitPriceController.clear();
-    // _dateAddedController.clear();
+  void resetForm() {
+    _itemNameController.clear();
+    _itemCodeController.clear();
+    _quantityController.clear();
+    _unitPriceController.clear();
+    _dateAddedController.clear();
     setState(() {
       _selectedCategory = null;
     });
@@ -464,13 +470,13 @@ class _StockManagementScreenState extends State<StockManagementScreen> {
         bottonshow(
           'Save',
           [Colors.blue.shade900, Colors.blue.shade700], // Example gradient colors
-          () => _saveStock(context),
+          () => saveStock(context),
         ),
         const SizedBox(width: 10),
         bottonshow(
           'Clear',
           [Colors.pink.shade400, Colors.orange.shade400], // Example gradient colors
-          _resetForm,
+          resetForm,
         ),
         const SizedBox(width: 10),
         bottonshow(
